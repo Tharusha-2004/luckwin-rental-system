@@ -24,13 +24,11 @@ app.use((req, res, next) => {
 });
 
 // MongoDB Connection
+// MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/luckwin_rental';
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const mongoUri = process.env.MONGODB_URI; // Fallback eka onna, .env ekenma ganna
+    await mongoose.connect(mongoUri); // Options ain kala
     console.log('✓ MongoDB connected successfully');
   } catch (error) {
     console.error('✗ MongoDB connection failed:', error.message);
