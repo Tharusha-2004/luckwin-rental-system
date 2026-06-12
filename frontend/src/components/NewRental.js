@@ -1,22 +1,20 @@
 /**
  * Modern POS Interface for Equipment Rental
  * Two-column layout: Customer & Items (Left) | Cart & Summary (Right)
- * Component-level state management with no backend calls
+ * Integrated with backend APIs for real-time data
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ShoppingCart, Plus, Minus, Trash2, PrinterIcon, AlertCircle } from 'lucide-react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 const NewRental = () => {
-  // Dummy items data
-  const DUMMY_ITEMS = [
-    { id: 1, name: 'Simenthi Machine', dailyRate: 150, category: 'Machinery', available: 5 },
-    { id: 2, name: 'Scaffolding Boards', dailyRate: 50, category: 'Scaffolding', available: 20 },
-    { id: 3, name: 'Electric Drill', dailyRate: 75, category: 'Tools', available: 8 },
-    { id: 4, name: 'Safety Helmet (Pack)', dailyRate: 100, category: 'Safety', available: 15 },
-    { id: 5, name: 'Concrete Mixer', dailyRate: 200, category: 'Machinery', available: 3 },
-    { id: 6, name: 'Wheelbarrow', dailyRate: 40, category: 'Tools', available: 10 },
-  ];
+  // Inventory State
+  const [items, setItems] = useState([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
 
   // Customer Form State
   const [customer, setCustomer] = useState({
@@ -34,9 +32,34 @@ const NewRental = () => {
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedItemQty, setSelectedItemQty] = useState(1);
 
-  // Form Validation Error
+  // Form Validation & Submission State
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Navigation
+  const navigate = useNavigate();
+
+  // Fetch items from backend on component mount
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      setItemsLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/items`);
+      if (response.data.success) {
+        setItems(response.data.data);
+        setError('');
+      }
+    } catch (err) {
+      setError('Failed to load inventory items');
+      console.error('Error fetching items:', err);
+    } finally {
+      setItemsLoading(false);
+    }
+  };
 
   // Handle customer input change
   const handleCustomerChange = (e) => {
@@ -57,15 +80,15 @@ const NewRental = () => {
       return;
     }
 
-    const item = DUMMY_ITEMS.find(i => i.id === parseInt(selectedItemId));
+    const item = items.find(i => i._id === selectedItemId);
     if (!item) return;
 
     // Check if item already in cart
-    const existingItem = cartItems.find(ci => ci.id === item.id);
+    const existingItem = cartItems.find(ci => ci._id === item._id);
     if (existingItem) {
       // Update quantity
       setCartItems(cartItems.map(ci =>
-        ci.id === item.id
+        ci._id === item._id
           ? { ...ci, quantity: ci.quantity + selectedItemQty }
           : ci
       ));
@@ -82,7 +105,7 @@ const NewRental = () => {
 
   // Remove item from cart
   const handleRemoveFromCart = (itemId) => {
-    setCartItems(cartItems.filter(item => item.id !== itemId));
+    setCartItems(cartItems.filter(item => item._id !== itemId));
   };
 
   // Update item quantity
@@ -92,7 +115,7 @@ const NewRental = () => {
       return;
     }
     setCartItems(cartItems.map(item =>
-      item.id === itemId ? { ...item, quantity: newQty } : item
+      item._id === itemId ? { ...item, quantity: newQty } : item
     ));
   };
 
@@ -113,8 +136,8 @@ const NewRental = () => {
   }, 0);
   const amountDue = Math.max(0, totalCost - advancePayment);
 
-  // Handle form submission
-  const handleGenerateRental = () => {
+  // Handle form submission with backend API calls
+  const handleGenerateRental = async () => {
     setError('');
     setSuccess('');
 
@@ -148,17 +171,61 @@ const NewRental = () => {
       return;
     }
 
-    // Success - In real app, this would call API
-    setSuccess('✓ Rental agreement generated successfully! Print receipt to complete.');
-    console.log('Rental Data:', {
-      customer,
-      cartItems,
-      expectedReturnDate,
-      rentalDays,
-      totalCost,
-      advancePayment,
-      amountDue,
-    });
+    try {
+      setIsSubmitting(true);
+
+      // Step A: Create/Register customer
+      console.log('Step A: Creating customer...');
+      const customerResponse = await axios.post(`${API_BASE_URL}/customers`, {
+        name: customer.name.trim(),
+        phone: customer.phone.trim(),
+        nic: customer.nic.trim(),
+      });
+
+      if (!customerResponse.data.success) {
+        throw new Error(customerResponse.data.message || 'Failed to create customer');
+      }
+
+      const customerId = customerResponse.data.data._id;
+      console.log('✓ Customer created:', customerId);
+
+      // Step B: Map cart items to backend schema
+      console.log('Step B: Mapping cart items...');
+      const rentedItems = cartItems.map(item => ({
+        itemId: item._id,
+        quantity: item.quantity,
+        dailyRate: item.dailyRate,
+      }));
+
+      // Step C: Create rental
+      console.log('Step C: Creating rental...');
+      const rentalResponse = await axios.post(`${API_BASE_URL}/rentals`, {
+        customerId,
+        rentedItems,
+        expectedReturnDate,
+        advancePayment: parseFloat(advancePayment),
+      });
+
+      if (!rentalResponse.data.success) {
+        throw new Error(rentalResponse.data.message || 'Failed to create rental');
+      }
+
+      const agreementToken = rentalResponse.data.data.agreementToken;
+      console.log('✓ Rental created with token:', agreementToken);
+
+      // Step D: Navigate to receipt
+      setSuccess('✓ Rental agreement generated successfully! Redirecting to receipt...');
+      setTimeout(() => {
+        navigate(`/receipt/${agreementToken}`);
+      }, 1500);
+
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create rental';
+      setError(`Error: ${errorMessage}`);
+      console.error('Error creating rental:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePrint = () => {
@@ -260,12 +327,13 @@ const NewRental = () => {
                 <select
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition"
+                  disabled={itemsLoading}
+                  className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition disabled:opacity-50"
                 >
-                  <option value="">-- Select Equipment --</option>
-                  {DUMMY_ITEMS.map(item => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} - Rs. {item.dailyRate}/day (Available: {item.available})
+                  <option value="">{itemsLoading ? '-- Loading Equipment --' : '-- Select Equipment --'}</option>
+                  {items.map(item => (
+                    <option key={item._id} value={item._id}>
+                      {item.name} - Rs. {item.dailyRate}/day (Available: {item.availableQuantity})
                     </option>
                   ))}
                 </select>
@@ -298,14 +366,21 @@ const NewRental = () => {
             {/* Items in Inventory List */}
             <div className="mt-6 pt-4 border-t border-slate-600">
               <p className="text-slate-400 text-sm mb-3">Available Equipment:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {DUMMY_ITEMS.map(item => (
-                  <div key={item.id} className="bg-slate-600 rounded p-2 text-sm">
-                    <p className="text-slate-200 font-medium">{item.name}</p>
-                    <p className="text-slate-400">Rs. {item.dailyRate}/day</p>
-                  </div>
-                ))}
-              </div>
+              {itemsLoading ? (
+                <p className="text-slate-400 text-sm">Loading inventory...</p>
+              ) : items.length === 0 ? (
+                <p className="text-slate-400 text-sm">No items available</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {items.map(item => (
+                    <div key={item._id} className="bg-slate-600 rounded p-2 text-sm">
+                      <p className="text-slate-200 font-medium">{item.name}</p>
+                      <p className="text-slate-400">Rs. {item.dailyRate}/day</p>
+                      <p className="text-slate-500 text-xs">Available: {item.availableQuantity}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -329,14 +404,14 @@ const NewRental = () => {
                 <p className="text-slate-400 text-center py-8">No items in cart</p>
               ) : (
                 cartItems.map(item => (
-                  <div key={item.id} className="bg-slate-600 rounded-lg p-3 space-y-2">
+                  <div key={item._id} className="bg-slate-600 rounded-lg p-3 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="text-white font-medium text-sm">{item.name}</p>
                         <p className="text-slate-400 text-xs">Rs. {item.dailyRate}/day</p>
                       </div>
                       <button
-                        onClick={() => handleRemoveFromCart(item.id)}
+                        onClick={() => handleRemoveFromCart(item._id)}
                         className="text-red-400 hover:text-red-300 transition"
                       >
                         <Trash2 size={16} />
@@ -346,7 +421,7 @@ const NewRental = () => {
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                        onClick={() => handleUpdateQuantity(item._id, item.quantity - 1)}
                         className="bg-slate-500 hover:bg-slate-400 text-white p-1 rounded transition"
                       >
                         <Minus size={14} />
@@ -355,11 +430,11 @@ const NewRental = () => {
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => handleUpdateQuantity(item.id, parseInt(e.target.value) || 1)}
+                        onChange={(e) => handleUpdateQuantity(item._id, parseInt(e.target.value) || 1)}
                         className="flex-1 bg-slate-500 text-white text-center py-1 rounded text-sm focus:outline-none"
                       />
                       <button
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => handleUpdateQuantity(item._id, item.quantity + 1)}
                         className="bg-slate-500 hover:bg-slate-400 text-white p-1 rounded transition"
                       >
                         <Plus size={14} />
@@ -436,11 +511,20 @@ const NewRental = () => {
             <div className="space-y-2 pt-4 border-t border-slate-600">
               <button
                 onClick={handleGenerateRental}
-                disabled={cartItems.length === 0}
+                disabled={cartItems.length === 0 || isSubmitting}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
               >
-                <PrinterIcon size={20} />
-                Generate Rental & Print
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <PrinterIcon size={20} />
+                    Generate Rental & Print
+                  </>
+                )}
               </button>
               <button
                 onClick={handlePrint}
