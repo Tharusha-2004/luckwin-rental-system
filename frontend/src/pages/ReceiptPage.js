@@ -10,7 +10,7 @@ import { receiptAPI } from '../services/api';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorAlert from './ErrorAlert';
-import { Download, Print, AlertCircle } from 'lucide-react';
+import { Download, Printer, AlertCircle } from 'lucide-react';
 
 const ReceiptPage = () => {
   const { token } = useParams();
@@ -75,7 +75,7 @@ const ReceiptPage = () => {
             onClick={handlePrint}
             className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
-            <Print size={18} />
+            <Printer size={18} />
             Print
           </button>
           <button
