@@ -6,12 +6,12 @@ import './index.css';
 import Layout from './components/Layout';
 
 // Components
+import Inventory from './components/Inventory';
 import NewRental from './components/NewRental';
 import Returns from './components/Returns';
 
 // Pages
 import Dashboard from './pages/Dashboard';
-import InventoryPage from './pages/InventoryPage';
 import CustomersPage from './pages/CustomersPage';
 import RentalsPage from './pages/RentalsPage';
 import ReceiptPage from './pages/ReceiptPage';
@@ -33,7 +33,7 @@ function App() {
           path="/inventory"
           element={
             <Layout>
-              <InventoryPage />
+              <Inventory />
             </Layout>
           }
         />
