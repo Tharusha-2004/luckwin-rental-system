@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const rentalController = require('../controllers/rentalController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /**
  * Rentals Routes
  * Base URL: /api/rentals
+ * All routes are protected — requires a valid Bearer token.
  */
+
+// Apply auth to every route in this file
+router.use(authMiddleware);
 
 // Get all rentals (with optional filters)
 router.get('/', rentalController.getAllRentals);

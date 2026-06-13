@@ -30,7 +30,7 @@ function App() {
           path="/"
           element={
             <ProtectedRoute>
-              <Layout><Dash board /></Layout>
+              <Layout><Dashboard /></Layout>
             </ProtectedRoute>
           }
         />

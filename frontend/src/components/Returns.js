@@ -5,11 +5,9 @@
  */
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../services/api';
 import { Search, Package, User, Calendar, DollarSign, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Returns = () => {
   // Search state
@@ -38,7 +36,7 @@ const Returns = () => {
       console.log('Fetching rental with token:', token);
 
       // GET /api/receipt/{token} - fetch rental by agreement token
-      const response = await axios.get(`${API_BASE_URL}/receipt/${token}`);
+      const response = await apiClient.get(`/receipt/${token}`);
 
       if (response.data.success && response.data.data) {
         setRentalData(response.data.data);
@@ -93,7 +91,7 @@ const Returns = () => {
       console.log('Processing return for rental:', rentalData._id);
 
       // POST /api/rentals/:id/return - confirm return and update inventory
-      const response = await axios.post(`${API_BASE_URL}/rentals/${rentalData._id}/return`, {
+      const response = await apiClient.post(`/rentals/${rentalData._id}/return`, {
         actualReturnDate: new Date().toISOString().split('T')[0],
       });
 

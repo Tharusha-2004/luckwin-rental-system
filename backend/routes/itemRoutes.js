@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const itemController = require('../controllers/itemController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /**
  * Items Routes
  * Base URL: /api/items
+ * All routes are protected — requires a valid Bearer token.
  */
+
+// Apply auth to every route in this file
+router.use(authMiddleware);
 
 // Get all items
 router.get('/', itemController.getAllItems);

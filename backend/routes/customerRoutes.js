@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const customerController = require('../controllers/customerController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /**
  * Customers Routes
  * Base URL: /api/customers
+ * All routes are protected — requires a valid Bearer token.
  */
+
+// Apply auth to every route in this file
+router.use(authMiddleware);
 
 // Get all customers
 router.get('/', customerController.getAllCustomers);

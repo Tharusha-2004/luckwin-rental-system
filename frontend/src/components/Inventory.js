@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/api';
 import {
   Plus,
   Edit2,
@@ -17,7 +17,6 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const CATEGORIES = ['Power Tools', 'Hand Tools', 'Heavy Machinery', 'Other'];
 
@@ -51,7 +50,7 @@ const Inventory = () => {
     try {
       setLoading(true);
       setError('');
-      const response = await axios.get(`${API_BASE_URL}/items`);
+      const response = await api.get('/items');
 
       if (response.data.success) {
         setItems(response.data.data);
@@ -140,10 +139,10 @@ const Inventory = () => {
       let response;
       if (editingId) {
         // Update existing item
-        response = await axios.put(`${API_BASE_URL}/items/${editingId}`, payload);
+        response = await api.put(`/items/${editingId}`, payload);
       } else {
         // Create new item
-        response = await axios.post(`${API_BASE_URL}/items`, payload);
+        response = await api.post('/items', payload);
       }
 
       if (response.data.success) {
@@ -180,7 +179,7 @@ const Inventory = () => {
 
     try {
       setError('');
-      const response = await axios.delete(`${API_BASE_URL}/items/${itemId}`);
+      const response = await api.delete(`/items/${itemId}`);
 
       if (response.data.success) {
         setSuccess('✓ Item deleted successfully!');

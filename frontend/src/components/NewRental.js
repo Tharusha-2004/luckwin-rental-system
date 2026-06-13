@@ -6,10 +6,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../services/api';
 import { ShoppingCart, Plus, Minus, Trash2, PrinterIcon, AlertCircle } from 'lucide-react';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const NewRental = () => {
   // Inventory State
@@ -48,7 +46,7 @@ const NewRental = () => {
   const fetchItems = async () => {
     try {
       setItemsLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/items`);
+      const response = await apiClient.get('/items');
       if (response.data.success) {
         setItems(response.data.data);
         setError('');
@@ -142,7 +140,7 @@ const NewRental = () => {
     setSuccess('');
 
     // Validation
-    if (!customerId.name.trim()) {
+    if (!customer.name.trim()) {
       setError('Customer name is required');
       return;
     }
@@ -176,8 +174,8 @@ const NewRental = () => {
 
       // Step A: Create/Register customer
       console.log('Step A: Creating customer...');
-      const customerResponse = await axios.post(`${API_BASE_URL}/customers`, {
-        name: customerId.name.trim(),
+      const customerResponse = await apiClient.post('/customers', {
+        name: customer.name.trim(),
         phone: customer.phone.trim(),
         nic: customer.nic.trim(),
       });
@@ -199,7 +197,7 @@ const NewRental = () => {
 
       // Step C: Create rental
       console.log('Step C: Creating rental...');
-      const rentalResponse = await axios.post(`${API_BASE_URL}/rentals`, {
+      const rentalResponse = await apiClient.post('/rentals', {
         customerId,
         rentedItems,
         expectedReturnDate,
