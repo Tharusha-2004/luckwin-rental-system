@@ -26,10 +26,13 @@ export const formatDateTime = (date) => {
 
 // Format currency
 export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
+  if (amount === undefined || amount === null) return 'Rs. 0.00';
+  
+  // Rs. kiyala daala, agata satha ganath (.00) ekkama pennanna meka use karanawa
+  return `Rs. ${Number(amount).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 };
 
 // Calculate days between two dates
