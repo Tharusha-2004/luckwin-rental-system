@@ -5,6 +5,7 @@ import './index.css';
 // Components
 import Navbar from './components/Navbar';
 import NewRental from './components/NewRental';
+import Returns from './components/Returns';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -27,6 +28,7 @@ function App() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/rentals" element={<RentalsPage />} />
           <Route path="/new-rental" element={<NewRental />} />
+          <Route path="/returns" element={<Returns />} />
           <Route path="/receipt/:token" element={<ReceiptPage />} />
         </Routes>
       </div>

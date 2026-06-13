@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Home, Package, Users, FileText, ShoppingCart } from 'lucide-react';
+import { Menu, X, Home, Package, Users, FileText, ShoppingCart, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar = () => {
@@ -19,6 +19,7 @@ const Navbar = () => {
     { path: '/customers', label: 'Customers', icon: Users },
     { path: '/rentals', label: 'Rentals', icon: FileText },
     { path: '/new-rental', label: 'POS', icon: ShoppingCart },
+    { path: '/returns', label: 'Returns', icon: RotateCcw },
   ];
 
   return (
