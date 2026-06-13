@@ -2,8 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 
+// Layout Component
+import Layout from './components/Layout';
+
 // Components
-import Navbar from './components/Navbar';
 import NewRental from './components/NewRental';
 import Returns from './components/Returns';
 
@@ -17,21 +19,60 @@ import ReceiptPage from './pages/ReceiptPage';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        {/* Navigation Bar */}
-        <Navbar />
+      <Routes>
+        {/* Routes with Layout Wrapper */}
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Dashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <Layout>
+              <InventoryPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/customers"
+          element={
+            <Layout>
+              <CustomersPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/rentals"
+          element={
+            <Layout>
+              <RentalsPage />
+            </Layout>
+          }
+        />
+        <Route
+          path="/pos"
+          element={
+            <Layout>
+              <NewRental />
+            </Layout>
+          }
+        />
+        <Route
+          path="/returns"
+          element={
+            <Layout>
+              <Returns />
+            </Layout>
+          }
+        />
 
-        {/* Routes */}
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/rentals" element={<RentalsPage />} />
-          <Route path="/new-rental" element={<NewRental />} />
-          <Route path="/returns" element={<Returns />} />
-          <Route path="/receipt/:token" element={<ReceiptPage />} />
-        </Routes>
-      </div>
+        {/* Full-screen Receipt Page (NO Layout) - for printing */}
+        <Route path="/receipt/:token" element={<ReceiptPage />} />
+      </Routes>
     </Router>
   );
 }
