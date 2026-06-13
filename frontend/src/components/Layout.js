@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, ShoppingCart, RotateCcw, Settings, Package, LogOut } from 'lucide-react';
+import { Menu, X, Home, ShoppingCart, RotateCcw, Settings, Package, LogOut, Users } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setShowSidebar] = useState(true);
@@ -24,6 +24,7 @@ const Layout = ({ children }) => {
 
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard', exact: true },
+    { path: '/customers', icon: Users, label: 'Customers' },
     { path: '/inventory', icon: Package, label: 'Inventory' },
     { path: '/pos', icon: ShoppingCart, label: 'New Rental / POS' },
     { path: '/returns', icon: RotateCcw, label: 'Returns' },

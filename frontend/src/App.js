@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 import Inventory from './components/Inventory';
 import NewRental from './components/NewRental';
 import Returns from './components/Returns';
+import Customers from './components/Customers';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -46,7 +47,7 @@ function App() {
           path="/customers"
           element={
             <ProtectedRoute>
-              <Layout><CustomersPage /></Layout>
+              <Layout><Customers /></Layout>
             </ProtectedRoute>
           }
         />
