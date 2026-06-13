@@ -221,24 +221,24 @@ const Returns = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-slate-400 text-sm">Name</p>
-                    <p className="text-white font-semibold">{rentalData?.customerId?.name || 'N/A'}</p>
+                    <p className="text-white font-semibold">{rentalData?.customer?.name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Phone</p>
-                    <p className="text-white font-semibold">{rentalData?.customerId?.phone || 'N/A'}</p>
+                    <p className="text-white font-semibold">{rentalData?.customer?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">NIC</p>
-                    <p className="text-white font-semibold">{rentalData?.customerId?.nic || 'N/A'}</p>
+                    <p className="text-white font-semibold">{rentalData?.customer?.nic || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Company</p>
-                    <p className="text-white font-semibold">{rentalData?.customerId?.companyName || 'N/A'}</p>
+                    <p className="text-white font-semibold">{rentalData?.customer?.companyName || 'N/A'}</p>
                   </div>
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm">Address</p>
-                  <p className="text-white">{rentalData?.customerId?.address || 'N/A'}, {rentalData?.customerId?.city || 'N/A'}</p>
+                  <p className="text-white">{rentalData?.customer?.address || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -285,8 +285,8 @@ const Returns = () => {
                     <div key={index} className="bg-slate-600 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="text-white font-semibold">{item?.itemId?.name || 'Unknown Item'}</p>
-                          <p className="text-slate-400 text-sm">{item?.itemId?.category || 'N/A'}</p>
+                          <p className="text-white font-semibold">{item?.name || 'Unknown Item'}</p>
+                          <p className="text-slate-400 text-sm">Equipment Rental</p>
                         </div>
                         <span className="bg-slate-500 text-white px-3 py-1 rounded text-sm font-medium">
                           Qty: {item?.quantity || 0}
