@@ -5,11 +5,18 @@
  */
 
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { Menu, X, Home, ShoppingCart, RotateCcw, Settings, Package } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Menu, X, Home, ShoppingCart, RotateCcw, Settings, Package, LogOut } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setShowSidebar] = useState(true);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('luckwin_token');
+    localStorage.removeItem('luckwin_user');
+    navigate('/login');
+  };
 
   const toggleSidebar = () => {
     setShowSidebar(!sidebarOpen);
@@ -100,6 +107,16 @@ const Layout = ({ children }) => {
             <Settings size={20} />
             {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
           </NavLink>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
+            title="Logout"
+          >
+            <LogOut size={20} />
+            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
+          </button>
         </div>
       </div>
 

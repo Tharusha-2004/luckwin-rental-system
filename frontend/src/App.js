@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Layout Component
 import Layout from './components/Layout';
@@ -24,53 +25,53 @@ function App() {
         {/* Standalone full-screen pages (no Layout) */}
         <Route path="/login" element={<Login />} />
 
-        {/* Routes with Layout Wrapper */}
+        {/* Protected routes — require a valid token */}
         <Route
           path="/"
           element={
-            <Layout>
-              <Dashboard />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><Dash board /></Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/inventory"
           element={
-            <Layout>
-              <Inventory />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><Inventory /></Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/customers"
           element={
-            <Layout>
-              <CustomersPage />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><CustomersPage /></Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/rentals"
           element={
-            <Layout>
-              <RentalsPage />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><RentalsPage /></Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/pos"
           element={
-            <Layout>
-              <NewRental />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><NewRental /></Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/returns"
           element={
-            <Layout>
-              <Returns />
-            </Layout>
+            <ProtectedRoute>
+              <Layout><Returns /></Layout>
+            </ProtectedRoute>
           }
         />
 
