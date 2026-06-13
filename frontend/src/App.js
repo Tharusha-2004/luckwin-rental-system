@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
+import Login from './components/Login';
 
 // Layout Component
 import Layout from './components/Layout';
@@ -20,6 +21,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Standalone full-screen pages (no Layout) */}
+        <Route path="/login" element={<Login />} />
+
         {/* Routes with Layout Wrapper */}
         <Route
           path="/"

@@ -47,6 +47,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/receipt', receiptRoutes);
 
+app.use('/api/auth', authRoutes);
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
