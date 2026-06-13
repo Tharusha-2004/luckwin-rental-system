@@ -1,99 +1,54 @@
 /**
  * Returns Dashboard Component
  * Interface for processing equipment returns and calculating final amounts due
+ * Integrated with backend APIs for real-time data
  */
 
 import React, { useState } from 'react';
+import axios from 'axios';
 import { Search, Package, User, Calendar, DollarSign, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const Returns = () => {
   // Search state
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
-  // Dummy rental data (will be replaced with API call)
+  // Rental data from API
   const [rentalData, setRentalData] = useState(null);
   const [searchError, setSearchError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Dummy data for demonstration
-  const DUMMY_RENTAL = {
-    _id: '507f1f77bcf86cd799439011',
-    agreementToken: 'AGMT-20260610-001',
-    customerId: {
-      _id: '507f1f77bcf86cd799439001',
-      name: 'John Contractor',
-      phone: '+94701234567',
-      nic: '123456789V',
-      address: '123 Main Street',
-      city: 'Colombo',
-      companyName: 'BuildTech Ltd',
-    },
-    rentedItems: [
-      {
-        itemId: {
-          _id: '507f1f77bcf86cd799439101',
-          name: 'Simenthi Machine',
-          category: 'Machinery',
-          unit: 'piece',
-        },
-        quantity: 2,
-        dailyRate: 150,
-      },
-      {
-        itemId: {
-          _id: '507f1f77bcf86cd799439102',
-          name: 'Scaffolding Boards',
-          category: 'Scaffolding',
-          unit: 'piece',
-        },
-        quantity: 10,
-        dailyRate: 50,
-      },
-    ],
-    rentDate: '2026-06-10',
-    expectedReturnDate: '2026-06-20',
-    actualReturnDate: null,
-    advancePayment: 3000,
-    totalCost: 8000,
-    finalAmount: null,
-    status: 'Active',
-    notes: 'Handle with care',
-  };
-
-  // Handle search
+  // Handle search - Fetch rental by agreement token
   const handleSearch = async () => {
     setSearchError('');
     setRentalData(null);
 
-    if (!searchInput.trim()) {
-      setSearchError('Please enter Agreement Token or Phone Number');
+    const token = searchInput.trim();
+    if (!token) {
+      setSearchError('Please enter an Agreement Token');
       return;
     }
 
     try {
       setIsSearching(true);
-      // Simulated API call - In real app, would call:
-      // GET /api/rentals/search?token=... or ?phone=...
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Fetching rental with token:', token);
 
-      // For demo, check if search matches dummy data
-      const searchLower = searchInput.toLowerCase().trim();
-      if (
-        searchLower === DUMMY_RENTAL.agreementToken.toLowerCase() ||
-        searchLower === DUMMY_RENTAL.customerId.phone
-      ) {
-        setRentalData(DUMMY_RENTAL);
+      // GET /api/receipt/{token} - fetch rental by agreement token
+      const response = await axios.get(`${API_BASE_URL}/receipt/${token}`);
+
+      if (response.data.success && response.data.data) {
+        setRentalData(response.data.data);
         setSearchError('');
       } else {
-        setSearchError('No rental found with that Token or Phone Number');
+        setSearchError(response.data.message || 'Rental not found');
       }
     } catch (error) {
-      setSearchError('Error searching for rental. Please try again.');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error searching for rental. Please try again.';
+      setSearchError(errorMsg);
       console.error('Search error:', error);
     } finally {
       setIsSearching(false);
@@ -107,10 +62,12 @@ const Returns = () => {
     }
   };
 
-  // Calculate days rented (from rent date to today)
+  // Calculate days rented (from rent date to today) - at least 1 day
   const calculateDaysRented = () => {
     if (!rentalData) return 0;
-    return calculateDaysDifference(rentalData.rentDate, new Date().toISOString().split('T')[0]);
+    const today = new Date().toISOString().split('T')[0];
+    const days = calculateDaysDifference(rentalData.rentDate, today);
+    return Math.max(1, days);
   };
 
   // Calculate total cost based on actual days
@@ -126,24 +83,36 @@ const Returns = () => {
   const totalCost = rentalData ? calculateTotalCost() : 0;
   const finalAmountDue = Math.max(0, totalCost - (rentalData?.advancePayment || 0));
 
-  // Handle confirm return
+  // Handle confirm return - POST to API
   const handleConfirmReturn = async () => {
-    if (!rentalData) return;
+    if (!rentalData || !rentalData._id) return;
 
     try {
       setIsProcessing(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setSearchError('');
+      console.log('Processing return for rental:', rentalData._id);
 
-      setShowSuccessMessage(true);
-      // Reset after 3 seconds
-      setTimeout(() => {
-        setRentalData(null);
-        setSearchInput('');
-        setShowSuccessMessage(false);
-      }, 3000);
+      // POST /api/rentals/:id/return - confirm return and update inventory
+      const response = await axios.post(`${API_BASE_URL}/rentals/${rentalData._id}/return`, {
+        actualReturnDate: new Date().toISOString().split('T')[0],
+      });
+
+      if (response.data.success) {
+        console.log('Return processed successfully:', response.data.data);
+        setShowSuccessMessage(true);
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          setRentalData(null);
+          setSearchInput('');
+          setShowSuccessMessage(false);
+        }, 3000);
+      } else {
+        setSearchError(response.data.message || 'Failed to process return');
+      }
     } catch (error) {
-      setSearchError('Error processing return. Please try again.');
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error processing return. Please try again.';
+      setSearchError(errorMsg);
       console.error('Return error:', error);
     } finally {
       setIsProcessing(false);
@@ -183,14 +152,14 @@ const Returns = () => {
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-slate-300 font-medium mb-2">
-                Agreement Token or Customer Phone
+                Agreement Token *
               </label>
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="e.g., AGMT-20260610-001 or +94701234567"
+                placeholder="e.g., AGMT-20260610-001"
                 disabled={isSearching}
                 className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white placeholder-slate-400 border border-slate-500 focus:border-green-400 focus:outline-none transition disabled:opacity-50"
               />
@@ -224,12 +193,11 @@ const Returns = () => {
             </div>
           )}
 
-          {/* Demo Data Note */}
-          {!rentalData && (
+          {/* Info Message */}
+          {!rentalData && !searchError && (
             <div className="bg-blue-500/10 border border-blue-500 rounded-lg p-3">
               <p className="text-blue-300 text-sm">
-                💡 <strong>Demo Mode:</strong> Try searching with "<code className="bg-slate-600 px-2 py-1 rounded">AGMT-20260610-001</code>" 
-                or "<code className="bg-slate-600 px-2 py-1 rounded">+94701234567</code>"
+                💡 Enter an agreement token and click Search to find the rental. The system will fetch live data from the backend.
               </p>
             </div>
           )}
