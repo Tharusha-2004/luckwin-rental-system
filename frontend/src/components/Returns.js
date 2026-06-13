@@ -1,272 +1,390 @@
 /**
- * Returns Dashboard Component
- * Interface for processing equipment returns and calculating final amounts due
- * Integrated with backend APIs for real-time data
+ * Returns Component
+ * Search active rentals by Agreement Token OR Customer NIC.
+ * When multiple active rentals exist (NIC search), shows a selection list
+ * before revealing the full return-processing panel.
  */
 
 import React, { useState } from 'react';
 import apiClient from '../services/api';
-import { Search, Package, User, Calendar, DollarSign, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import {
+  Search,
+  Package,
+  User,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  Loader,
+  ChevronRight,
+  Clock,
+  CreditCard,
+} from 'lucide-react';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
 
 const Returns = () => {
-  // Search state
-  const [searchInput, setSearchInput] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  // ── Search state ─────────────────────────────────────────────────────────
+  const [searchInput, setSearchInput]       = useState('');
+  const [isSearching, setIsSearching]       = useState(false);
+  const [searchError, setSearchError]       = useState('');
 
-  // Rental data from API
-  const [rentalData, setRentalData] = useState(null);
-  const [searchError, setSearchError] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  // ── Results state ─────────────────────────────────────────────────────────
+  // results = array of rentals returned from API (1 for token, N for NIC)
+  const [results, setResults]               = useState([]);
+  const [searchType, setSearchType]         = useState(''); // 'token' | 'nic'
+
+  // ── Selected rental for processing ───────────────────────────────────────
+  const [rentalData, setRentalData]         = useState(null);
+
+  // ── Return processing state ───────────────────────────────────────────────
+  const [isProcessing, setIsProcessing]     = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Handle search - Fetch rental by agreement token
+  // ── Handle search ─────────────────────────────────────────────────────────
   const handleSearch = async () => {
     setSearchError('');
+    setResults([]);
     setRentalData(null);
+    setShowSuccessMessage(false);
 
-    const token = searchInput.trim();
-    if (!token) {
-      setSearchError('Please enter an Agreement Token');
+    const query = searchInput.trim();
+    if (!query) {
+      setSearchError('Please enter an Agreement Token or Customer NIC.');
       return;
     }
 
     try {
       setIsSearching(true);
-      console.log('Fetching rental with token:', token);
+      // apiClient automatically attaches Authorization: Bearer <token>
+      const response = await apiClient.get(`/rentals/search/${encodeURIComponent(query)}`);
 
-      // GET /api/receipt/{token} - fetch rental by agreement token
-      const response = await apiClient.get(`/receipt/${token}`);
+      if (response.data.success) {
+        const data = response.data.data;
+        setSearchType(response.data.searchType);
 
-      if (response.data.success && response.data.data) {
-        setRentalData(response.data.data);
-        setSearchError('');
+        if (data.length === 1) {
+          // Single result — go straight to processing panel
+          setRentalData(data[0]);
+        } else {
+          // Multiple results (NIC search) — show selection list
+          setResults(data);
+        }
       } else {
-        setSearchError(response.data.message || 'Rental not found');
+        setSearchError(response.data.error || 'Rental not found.');
       }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error searching for rental. Please try again.';
-      setSearchError(errorMsg);
-      console.error('Search error:', error);
+    } catch (err) {
+      setSearchError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Error searching for rental. Please try again.'
+      );
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Handle Enter key on search
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
-  // Calculate days rented (from rent date to today) - at least 1 day
+  // ── Select a specific rental from multi-result list ───────────────────────
+  const handleSelectRental = (rental) => {
+    setResults([]);
+    setRentalData(rental);
+  };
+
+  // ── Reset back to search ───────────────────────────────────────────────────
+  const handleReset = () => {
+    setRentalData(null);
+    setResults([]);
+    setSearchError('');
+    setSearchInput('');
+    setShowSuccessMessage(false);
+  };
+
+  // ── Cost helpers ──────────────────────────────────────────────────────────
   const calculateDaysRented = () => {
     if (!rentalData) return 0;
     const today = new Date().toISOString().split('T')[0];
-    const days = calculateDaysDifference(rentalData.rentDate, today);
-    return Math.max(1, days);
+    return Math.max(1, calculateDaysDifference(rentalData.rentDate, today));
   };
 
-  // Calculate total cost based on actual days
   const calculateTotalCost = () => {
     if (!rentalData) return 0;
-    const daysRented = calculateDaysRented();
-    return rentalData.rentedItems.reduce((sum, item) => {
-      return sum + (item.quantity * item.dailyRate * daysRented);
-    }, 0);
+    const days = calculateDaysRented();
+    return rentalData.rentedItems.reduce(
+      (sum, item) => sum + item.quantity * item.dailyRate * days,
+      0
+    );
   };
 
-  const daysRented = rentalData ? calculateDaysRented() : 0;
-  const totalCost = rentalData ? calculateTotalCost() : 0;
-  const finalAmountDue = Math.max(0, totalCost - (rentalData?.advancePayment || 0));
+  const daysRented      = rentalData ? calculateDaysRented()  : 0;
+  const totalCost       = rentalData ? calculateTotalCost()   : 0;
+  const finalAmountDue  = Math.max(0, totalCost - (rentalData?.advancePayment || 0));
 
-  // Handle confirm return - POST to API
+  // ── Confirm return ────────────────────────────────────────────────────────
   const handleConfirmReturn = async () => {
-    if (!rentalData || !rentalData._id) return;
-
+    if (!rentalData?._id) return;
     try {
       setIsProcessing(true);
       setSearchError('');
-      console.log('Processing return for rental:', rentalData._id);
 
-      // POST /api/rentals/:id/return - confirm return and update inventory
       const response = await apiClient.post(`/rentals/${rentalData._id}/return`, {
         actualReturnDate: new Date().toISOString().split('T')[0],
       });
 
       if (response.data.success) {
-        console.log('Return processed successfully:', response.data.data);
         setShowSuccessMessage(true);
-        
-        // Reset after 3 seconds
         setTimeout(() => {
-          setRentalData(null);
-          setSearchInput('');
-          setShowSuccessMessage(false);
-        }, 3000);
+          handleReset();
+        }, 3500);
       } else {
-        setSearchError(response.data.message || 'Failed to process return');
+        setSearchError(response.data.message || 'Failed to process return.');
       }
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error processing return. Please try again.';
-      setSearchError(errorMsg);
-      console.error('Return error:', error);
+    } catch (err) {
+      setSearchError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Error processing return. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6">
-      {/* Header */}
+
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <Package className="text-green-400" size={32} />
           <h1 className="text-4xl font-bold text-white">Equipment Returns</h1>
         </div>
-        <p className="text-slate-400">Process returns and calculate final amounts due</p>
+        <p className="text-slate-400">
+          Search by Agreement Token or Customer NIC to process a return
+        </p>
       </div>
 
-      {/* Success Message */}
+      {/* ── Success Banner ──────────────────────────────────────────────── */}
       {showSuccessMessage && (
-        <div className="mb-6 bg-green-500/10 border border-green-500 rounded-lg p-4 flex items-start gap-3">
-          <CheckCircle className="text-green-500 flex-shrink-0 mt-0.5" size={24} />
+        <div className="mb-6 bg-green-500/10 border border-green-500 rounded-xl p-4 flex items-start gap-3">
+          <CheckCircle className="text-green-400 flex-shrink-0 mt-0.5" size={24} />
           <div>
-            <h3 className="font-semibold text-green-400 text-lg">Return Processed Successfully!</h3>
-            <p className="text-green-300 text-sm mt-1">The rental has been marked as returned and inventory has been updated.</p>
+            <p className="text-green-300 font-semibold text-lg">Return Processed Successfully!</p>
+            <p className="text-green-400 text-sm mt-1">
+              The rental has been marked as returned and inventory has been updated.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Search Section */}
+      {/* ── Search Panel ────────────────────────────────────────────────── */}
       <div className="bg-slate-700 rounded-xl p-6 shadow-xl mb-6">
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Search size={24} />
-          Find Rental
+          <Search size={22} /> Find Rental
         </h2>
 
-        <div className="space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-slate-300 font-medium mb-2">
-                Agreement Token *
-              </label>
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="e.g., AGMT-20260610-001"
-                disabled={isSearching}
-                className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white placeholder-slate-400 border border-slate-500 focus:border-green-400 focus:outline-none transition disabled:opacity-50"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={handleSearch}
-                disabled={isSearching}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition transform hover:scale-105"
-              >
-                {isSearching ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    Searching...
-                  </>
-                ) : (
-                  <>
-                    <Search size={20} />
-                    Search
-                  </>
-                )}
-              </button>
-            </div>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-slate-300 font-medium mb-2 text-sm">
+              Agreement Token or Customer NIC *
+            </label>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="e.g., AGMT-2026... or 200405..."
+              disabled={isSearching}
+              className="w-full px-4 py-2.5 rounded-lg bg-slate-600 text-white placeholder-slate-400 border border-slate-500 focus:border-green-400 focus:outline-none transition disabled:opacity-50"
+            />
           </div>
-
-          {/* Search Error */}
-          {searchError && (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
-              <p className="text-red-300 text-sm">{searchError}</p>
-            </div>
-          )}
-
-          {/* Info Message */}
-          {!rentalData && !searchError && (
-            <div className="bg-blue-500/10 border border-blue-500 rounded-lg p-3">
-              <p className="text-blue-300 text-sm">
-                💡 Enter an agreement token and click Search to find the rental. The system will fetch live data from the backend.
-              </p>
-            </div>
-          )}
+          <div className="flex items-end">
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-medium transition transform hover:scale-105"
+            >
+              {isSearching ? (
+                <><Loader className="animate-spin" size={20} /> Searching…</>
+              ) : (
+                <><Search size={20} /> Search</>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Error */}
+        {searchError && (
+          <div className="mt-4 bg-red-500/10 border border-red-500 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
+            <p className="text-red-300 text-sm">{searchError}</p>
+          </div>
+        )}
+
+        {/* Hint */}
+        {!results.length && !rentalData && !searchError && (
+          <div className="mt-4 bg-blue-500/10 border border-blue-500/40 rounded-lg p-3">
+            <p className="text-blue-300 text-sm">
+              💡 Enter an <span className="font-semibold">Agreement Token</span> for a specific
+              rental, or a <span className="font-semibold">Customer NIC</span> to see all their
+              active rentals.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Rental Details & Return Processing */}
+      {/* ── Multi-result Selection List (NIC search) ─────────────────────── */}
+      {results.length > 1 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <CreditCard className="text-indigo-400" size={20} />
+              {results.length} Active Rental{results.length !== 1 ? 's' : ''} found for this customer
+            </h2>
+            <button onClick={handleReset} className="text-slate-400 hover:text-slate-200 text-sm underline">
+              New search
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {results.map((rental) => {
+              const customer = rental.customerId;
+              const itemNames = rental.rentedItems
+                .map((ri) => ri.itemId?.name || 'Unknown')
+                .join(', ');
+              const isOverdue = rental.status === 'Overdue';
+
+              return (
+                <div
+                  key={rental._id}
+                  className="bg-slate-700 border border-slate-600 hover:border-green-500/60 rounded-xl p-5 flex items-center justify-between group transition-all duration-200 cursor-pointer"
+                  onClick={() => handleSelectRental(rental)}
+                >
+                  <div className="flex-1 min-w-0">
+                    {/* Token + status */}
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <span className="font-mono text-blue-300 text-sm font-semibold truncate">
+                        {rental.agreementToken}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          isOverdue
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                            : 'bg-green-500/20 text-green-300 border border-green-500/40'
+                        }`}
+                      >
+                        {isOverdue ? <AlertCircle size={10} /> : <CheckCircle size={10} />}
+                        {rental.status}
+                      </span>
+                    </div>
+
+                    {/* Items & dates */}
+                    <p className="text-white text-sm font-medium truncate">{itemNames}</p>
+                    <div className="flex items-center gap-4 mt-1.5 text-slate-400 text-xs">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        Rented: {formatDate(rental.rentDate)}
+                      </span>
+                      <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-400' : ''}`}>
+                        <Clock size={12} />
+                        Due: {formatDate(rental.expectedReturnDate)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign size={12} />
+                        Rs. {(rental.totalCost || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="ml-4 flex items-center gap-2 text-green-400 group-hover:text-green-300 transition-colors flex-shrink-0">
+                    <span className="text-sm font-semibold hidden sm:block">Process Return</span>
+                    <ChevronRight size={20} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Return Processing Panel ──────────────────────────────────────── */}
       {rentalData && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* LEFT COLUMN - Rental Details */}
+
+          {/* LEFT — Rental Details */}
           <div className="lg:col-span-2 space-y-6">
-            
+
+            {/* Back link when arrived via NIC */}
+            {searchType === 'nic' && (
+              <button
+                onClick={handleReset}
+                className="text-slate-400 hover:text-slate-200 text-sm flex items-center gap-1 transition"
+              >
+                ← Back to search
+              </button>
+            )}
+
             {/* Customer Information */}
             <div className="bg-slate-700 rounded-xl p-6 shadow-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <User className="text-blue-400" size={24} />
-                Customer Information
+                <User className="text-blue-400" size={22} /> Customer Information
               </h2>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-slate-400 text-sm">Name</p>
-                    <p className="text-white font-semibold">{rentalData?.customer?.name || 'N/A'}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { label: 'Name',    value: rentalData.customerId?.name },
+                  { label: 'Phone',   value: rentalData.customerId?.phone },
+                  { label: 'NIC',     value: rentalData.customerId?.nic },
+                  { label: 'Company', value: rentalData.customerId?.companyName },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-slate-400 text-sm">{label}</p>
+                    <p className="text-white font-semibold mt-0.5">{value || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Phone</p>
-                    <p className="text-white font-semibold">{rentalData?.customer?.phone || 'N/A'}</p>
+                ))}
+                {rentalData.customerId?.address && (
+                  <div className="sm:col-span-2">
+                    <p className="text-slate-400 text-sm">Address</p>
+                    <p className="text-white mt-0.5">{rentalData.customerId.address}</p>
                   </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">NIC</p>
-                    <p className="text-white font-semibold">{rentalData?.customer?.nic || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Company</p>
-                    <p className="text-white font-semibold">{rentalData?.customer?.companyName || 'N/A'}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Address</p>
-                  <p className="text-white">{rentalData?.customer?.address || 'N/A'}</p>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* Rental Agreement Details */}
+            {/* Agreement Details */}
             <div className="bg-slate-700 rounded-xl p-6 shadow-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Calendar className="text-purple-400" size={24} />
-                Rental Agreement
+                <Calendar className="text-purple-400" size={22} /> Rental Agreement
               </h2>
-              <div className="space-y-4">
-                <div className="bg-slate-600 rounded-lg p-4">
-                  <p className="text-slate-400 text-sm mb-1">Agreement Token</p>
-                  <p className="text-white font-mono text-lg font-bold">{rentalData?.agreementToken || 'N/A'}</p>
+              <div className="bg-slate-600 rounded-lg p-4 mb-4">
+                <p className="text-slate-400 text-xs mb-1">Agreement Token</p>
+                <p className="text-white font-mono text-base font-bold break-all">
+                  {rentalData.agreementToken}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-slate-400 text-sm">Rent Date</p>
+                  <p className="text-white font-semibold">{formatDate(rentalData.rentDate)}</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-slate-400 text-sm">Rent Date</p>
-                    <p className="text-white font-semibold">{rentalData?.rentDate ? formatDate(rentalData.rentDate) : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Expected Return</p>
-                    <p className="text-white font-semibold">{rentalData?.expectedReturnDate ? formatDate(rentalData.expectedReturnDate) : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Status</p>
-                    <span className="inline-block bg-blue-500/30 text-blue-300 px-3 py-1 rounded-full text-sm font-semibold">
-                      {rentalData?.status || 'Unknown'}
-                    </span>
-                  </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Expected Return</p>
+                  <p className="text-white font-semibold">{formatDate(rentalData.expectedReturnDate)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400 text-sm">Status</p>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-0.5 ${
+                      rentalData.status === 'Overdue'
+                        ? 'bg-red-500/30 text-red-300'
+                        : 'bg-blue-500/30 text-blue-300'
+                    }`}
+                  >
+                    {rentalData.status}
+                  </span>
                 </div>
               </div>
             </div>
@@ -274,127 +392,105 @@ const Returns = () => {
             {/* Rented Items */}
             <div className="bg-slate-700 rounded-xl p-6 shadow-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Package className="text-orange-400" size={24} />
-                Rented Items ({rentalData?.rentedItems?.length || 0})
+                <Package className="text-orange-400" size={22} />
+                Rented Items ({rentalData.rentedItems?.length || 0})
               </h2>
               <div className="space-y-3">
-                {rentalData?.rentedItems && rentalData.rentedItems.length > 0 ? (
-                  rentalData.rentedItems.map((item, index) => (
-                    <div key={index} className="bg-slate-600 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="text-white font-semibold">{item?.name || 'Unknown Item'}</p>
-                          <p className="text-slate-400 text-sm">Equipment Rental</p>
-                        </div>
-                        <span className="bg-slate-500 text-white px-3 py-1 rounded text-sm font-medium">
-                          Qty: {item?.quantity || 0}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-slate-400">Daily Rate:</span>
-                        <span className="text-green-400 font-semibold">Rs. {item?.dailyRate || 0}/day</span>
-                      </div>
+                {rentalData.rentedItems?.map((item, i) => (
+                  <div key={i} className="bg-slate-600 rounded-lg p-4 flex justify-between items-center">
+                    <div>
+                      <p className="text-white font-semibold">{item.itemId?.name || 'Unknown'}</p>
+                      <p className="text-slate-400 text-sm">Equipment Rental</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-slate-400 text-center py-4">No items in this rental</p>
-                )}
+                    <div className="text-right">
+                      <span className="bg-slate-500 text-white px-3 py-1 rounded text-sm font-medium">
+                        Qty: {item.quantity}
+                      </span>
+                      <p className="text-green-400 text-sm font-semibold mt-1">
+                        Rs. {item.dailyRate}/day
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN - Cost Calculation & Return */}
-          <div className="lg:col-span-1">
-            <div className="bg-slate-700 rounded-xl p-6 shadow-xl sticky top-6 space-y-4">
-              
-              {/* Calculation Details */}
-              <div>
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <DollarSign className="text-yellow-400" size={24} />
-                  Cost Calculation
-                </h3>
+          {/* RIGHT — Cost Summary & Return Button */}
+          <div>
+            <div className="bg-slate-700 rounded-xl p-6 shadow-xl sticky top-6 space-y-5">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <DollarSign className="text-yellow-400" size={22} /> Cost Calculation
+              </h3>
 
-                <div className="space-y-3">
-                  {/* Days Rented */}
-                  <div className="bg-slate-600 rounded-lg p-3 border border-slate-500">
-                    <p className="text-slate-400 text-sm mb-1">Days Rented</p>
-                    <p className="text-white text-2xl font-bold">{daysRented} days</p>
-                    <p className="text-slate-500 text-xs mt-1">
-                      From {rentalData?.rentDate ? formatDate(rentalData.rentDate) : 'N/A'} to today
-                    </p>
-                  </div>
-
-                  {/* Subtotal */}
-                  <div className="bg-slate-600 rounded-lg p-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Subtotal</span>
-                      <span className="text-white font-semibold">{formatCurrency(totalCost)}</span>
-                    </div>
-                    <p className="text-slate-500 text-xs mt-2">
-                      ({daysRented} days × item rates)
-                    </p>
-                  </div>
-
-                  {/* Advance Payment */}
-                  <div className="bg-slate-600 rounded-lg p-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-400">Advance Paid</span>
-                      <span className="text-green-400 font-semibold">-{formatCurrency(rentalData?.advancePayment || 0)}</span>
-                    </div>
-                  </div>
-
-                  {/* Amount Due - HIGHLIGHTED */}
-                  <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4 border-2 border-orange-400">
-                    <p className="text-slate-100 text-sm mb-1">Final Amount Due</p>
-                    <p className="text-white text-3xl font-bold">{formatCurrency(finalAmountDue)}</p>
-                    {finalAmountDue === 0 && (
-                      <p className="text-green-300 text-sm mt-2">✓ Fully paid with advance</p>
-                    )}
-                  </div>
-                </div>
+              {/* Days rented */}
+              <div className="bg-slate-600 rounded-lg p-4 border border-slate-500">
+                <p className="text-slate-400 text-sm mb-1">Days Rented</p>
+                <p className="text-white text-2xl font-bold">{daysRented} days</p>
+                <p className="text-slate-500 text-xs mt-1">
+                  From {formatDate(rentalData.rentDate)} to today
+                </p>
               </div>
 
-              {/* Notes */}
-              {rentalData?.notes && (
-                <div className="bg-slate-600 rounded-lg p-3 border-l-4 border-blue-400">
-                  <p className="text-slate-400 text-sm mb-1">Notes</p>
-                  <p className="text-white text-sm italic">{rentalData?.notes}</p>
+              {/* Subtotal */}
+              <div className="bg-slate-600 rounded-lg p-3 flex justify-between">
+                <span className="text-slate-400 text-sm">Subtotal</span>
+                <span className="text-white font-semibold">{formatCurrency(totalCost)}</span>
+              </div>
+
+              {/* Advance paid */}
+              <div className="bg-slate-600 rounded-lg p-3 flex justify-between">
+                <span className="text-slate-400 text-sm">Advance Paid</span>
+                <span className="text-green-400 font-semibold">
+                  -{formatCurrency(rentalData.advancePayment || 0)}
+                </span>
+              </div>
+
+              {/* Final amount */}
+              <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4 border-2 border-orange-400">
+                <p className="text-slate-100 text-sm mb-1">Final Amount Due</p>
+                <p className="text-white text-3xl font-bold">{formatCurrency(finalAmountDue)}</p>
+                {finalAmountDue === 0 && (
+                  <p className="text-green-300 text-sm mt-1">✓ Fully paid with advance</p>
+                )}
+              </div>
+
+              {/* Error inside panel */}
+              {searchError && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 flex gap-2">
+                  <AlertCircle className="text-red-400 flex-shrink-0" size={16} />
+                  <p className="text-red-300 text-sm">{searchError}</p>
                 </div>
               )}
 
-              {/* Return Button */}
-              <div className="pt-2 border-t border-slate-600">
-                <button
-                  onClick={handleConfirmReturn}
-                  disabled={isProcessing}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader className="animate-spin" size={20} />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={20} />
-                      Confirm Return
-                    </>
-                  )}
-                </button>
-                <p className="text-slate-400 text-xs text-center mt-3">
-                  Clicking this will mark the rental as returned and update inventory
-                </p>
-              </div>
+              {/* Confirm Return button */}
+              <button
+                onClick={handleConfirmReturn}
+                disabled={isProcessing}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
+              >
+                {isProcessing ? (
+                  <><Loader className="animate-spin" size={20} /> Processing…</>
+                ) : (
+                  <><CheckCircle size={20} /> Confirm Return</>
+                )}
+              </button>
+              <p className="text-slate-500 text-xs text-center">
+                This will mark the rental as returned and restore inventory stock.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Empty State */}
-      {!rentalData && !searchError && (
+      {/* ── Empty State ──────────────────────────────────────────────────── */}
+      {!rentalData && !results.length && !searchError && (
         <div className="text-center py-16">
-          <Package className="mx-auto text-slate-500 mb-4" size={48} />
+          <Package className="mx-auto text-slate-600 mb-4" size={52} />
           <p className="text-slate-400 text-lg">Search for a rental to begin processing returns</p>
+          <p className="text-slate-600 text-sm mt-2">
+            Use the Agreement Token or the customer's NIC number
+          </p>
         </div>
       )}
     </div>

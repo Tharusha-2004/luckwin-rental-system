@@ -24,6 +24,9 @@ router.get('/overdue', rentalController.getOverdueRentals);
 // Get rental by agreement token (for receipt)
 router.get('/token/:token', rentalController.getRentalByToken);
 
+// Search rental by Agreement Token OR Customer NIC (must be before /:id)
+router.get('/search/:query', rentalController.searchRentals);
+
 // Get single rental by ID
 router.get('/:id', rentalController.getRentalById);
 

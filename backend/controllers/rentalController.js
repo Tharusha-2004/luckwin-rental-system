@@ -328,6 +328,77 @@ const getOverdueRentals = async (req, res) => {
   }
 };
 
+/**
+ * Search rentals by Agreement Token OR Customer NIC
+ * GET /api/rentals/search/:query
+ *
+ * Priority:
+ *  1. Exact match on agreementToken (any status)
+ *  2. Customer NIC lookup → return all Active/Overdue rentals for that customer
+ */
+const searchRentals = async (req, res) => {
+  try {
+    const query = req.params.query?.trim();
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required.',
+      });
+    }
+
+    // ── 1. Try exact token match first ──────────────────────────────────────
+    const byToken = await Rental.findOne({ agreementToken: query })
+      .populate('customerId')
+      .populate('rentedItems.itemId');
+
+    if (byToken) {
+      return res.json({
+        success: true,
+        searchType: 'token',
+        data: [byToken],
+      });
+    }
+
+    // ── 2. Fall back: look up customer by NIC ────────────────────────────────
+    const customer = await Customer.findOne({ nic: query });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        error: 'No rental or customer found matching that token or NIC.',
+      });
+    }
+
+    // Return all Active (or Overdue) rentals for this customer
+    const byNic = await Rental.find({
+      customerId: customer._id,
+      status: { $in: ['Active', 'Overdue'] },
+    })
+      .populate('customerId')
+      .populate('rentedItems.itemId')
+      .sort({ createdAt: -1 });
+
+    if (byNic.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: `Customer "${customer.name}" has no active rentals.`,
+      });
+    }
+
+    return res.json({
+      success: true,
+      searchType: 'nic',
+      data: byNic,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getAllRentals,
   getRentalById,
@@ -336,4 +407,5 @@ module.exports = {
   getRentalByToken,
   getActiveRentals,
   getOverdueRentals,
+  searchRentals,
 };
