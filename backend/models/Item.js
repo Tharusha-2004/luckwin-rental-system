@@ -30,7 +30,7 @@ const itemSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['Scaffolding', 'Tools', 'Machinery', 'Safety', 'Other'],
+      enum: ['Power Tools', 'Hand Tools', 'Heavy machinery', 'Other'],
       default: 'Other',
     },
     unit: {

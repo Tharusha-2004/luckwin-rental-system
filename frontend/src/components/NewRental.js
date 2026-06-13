@@ -142,7 +142,7 @@ const NewRental = () => {
     setSuccess('');
 
     // Validation
-    if (!customer.name.trim()) {
+    if (!customerId.name.trim()) {
       setError('Customer name is required');
       return;
     }
@@ -177,7 +177,7 @@ const NewRental = () => {
       // Step A: Create/Register customer
       console.log('Step A: Creating customer...');
       const customerResponse = await axios.post(`${API_BASE_URL}/customers`, {
-        name: customer.name.trim(),
+        name: customerId.name.trim(),
         phone: customer.phone.trim(),
         nic: customer.nic.trim(),
       });

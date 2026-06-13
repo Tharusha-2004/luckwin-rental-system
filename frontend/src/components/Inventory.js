@@ -14,7 +14,7 @@ import {
   Loader,
   X,
   Package,
-  Grid3x3,
+  LayoutGrid,
 } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -112,11 +112,11 @@ const Inventory = () => {
       setError('Item name is required');
       return;
     }
-    if (!formData.dailyRate || parseFloat(formData.dailyRate) <= 0) {
+    if (!formData.dailyRate || Number(formData.dailyRate) <= 0) {
       setError('Daily rate must be a positive number');
       return;
     }
-    if (!formData.totalQuantity || parseInt(formData.totalQuantity) <= 0) {
+    if (!formData.totalQuantity || Number(formData.totalQuantity) <= 0) {
       setError('Total quantity must be a positive number');
       return;
     }
@@ -127,10 +127,15 @@ const Inventory = () => {
       const payload = {
         name: formData.name.trim(),
         category: formData.category,
-        dailyRate: parseFloat(formData.dailyRate),
-        totalQuantity: parseInt(formData.totalQuantity),
+        dailyRate: Number(formData.dailyRate),
+        totalQuantity: Number(formData.totalQuantity),
         unit: formData.unit,
       };
+
+      // For new items, set availableQuantity equal to totalQuantity
+      if (!editingId) {
+        payload.availableQuantity = Number(formData.totalQuantity);
+      }
 
       let response;
       if (editingId) {
@@ -153,8 +158,13 @@ const Inventory = () => {
         setError(response.data.message || 'Failed to save item');
       }
     } catch (err) {
+      // Log the actual backend error for debugging
+      console.error('Backend error response:', err.response?.data);
+      
       const errorMsg =
-        err.response?.data?.message || 'Error saving item. Please try again.';
+        err.response?.data?.error || 
+        err.response?.data?.message || 
+        'Error saving item. Please try again.';
       setError(errorMsg);
       console.error('Error saving item:', err);
     } finally {
@@ -249,7 +259,7 @@ const Inventory = () => {
         {/* Table Header */}
         <div className="px-6 py-4 border-b border-slate-600 bg-slate-800">
           <div className="flex items-center gap-3">
-            <Grid3x3 className="text-blue-400" size={20} />
+            <LayoutGrid className="text-blue-400" size={20} />
             <h2 className="text-lg font-bold text-white">
               Items ({items.length})
             </h2>
