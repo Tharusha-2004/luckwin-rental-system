@@ -221,24 +221,24 @@ const Returns = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-slate-400 text-sm">Name</p>
-                    <p className="text-white font-semibold">{rentalData.customerId.name}</p>
+                    <p className="text-white font-semibold">{rentalData?.customerId?.name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Phone</p>
-                    <p className="text-white font-semibold">{rentalData.customerId.phone}</p>
+                    <p className="text-white font-semibold">{rentalData?.customerId?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">NIC</p>
-                    <p className="text-white font-semibold">{rentalData.customerId.nic}</p>
+                    <p className="text-white font-semibold">{rentalData?.customerId?.nic || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Company</p>
-                    <p className="text-white font-semibold">{rentalData.customerId.companyName || 'N/A'}</p>
+                    <p className="text-white font-semibold">{rentalData?.customerId?.companyName || 'N/A'}</p>
                   </div>
                 </div>
                 <div>
                   <p className="text-slate-400 text-sm">Address</p>
-                  <p className="text-white">{rentalData.customerId.address}, {rentalData.customerId.city}</p>
+                  <p className="text-white">{rentalData?.customerId?.address || 'N/A'}, {rentalData?.customerId?.city || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -252,21 +252,21 @@ const Returns = () => {
               <div className="space-y-4">
                 <div className="bg-slate-600 rounded-lg p-4">
                   <p className="text-slate-400 text-sm mb-1">Agreement Token</p>
-                  <p className="text-white font-mono text-lg font-bold">{rentalData.agreementToken}</p>
+                  <p className="text-white font-mono text-lg font-bold">{rentalData?.agreementToken || 'N/A'}</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-slate-400 text-sm">Rent Date</p>
-                    <p className="text-white font-semibold">{formatDate(rentalData.rentDate)}</p>
+                    <p className="text-white font-semibold">{rentalData?.rentDate ? formatDate(rentalData.rentDate) : 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Expected Return</p>
-                    <p className="text-white font-semibold">{formatDate(rentalData.expectedReturnDate)}</p>
+                    <p className="text-white font-semibold">{rentalData?.expectedReturnDate ? formatDate(rentalData.expectedReturnDate) : 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 text-sm">Status</p>
                     <span className="inline-block bg-blue-500/30 text-blue-300 px-3 py-1 rounded-full text-sm font-semibold">
-                      {rentalData.status}
+                      {rentalData?.status || 'Unknown'}
                     </span>
                   </div>
                 </div>
@@ -277,26 +277,30 @@ const Returns = () => {
             <div className="bg-slate-700 rounded-xl p-6 shadow-xl">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <Package className="text-orange-400" size={24} />
-                Rented Items ({rentalData.rentedItems.length})
+                Rented Items ({rentalData?.rentedItems?.length || 0})
               </h2>
               <div className="space-y-3">
-                {rentalData.rentedItems.map((item, index) => (
-                  <div key={index} className="bg-slate-600 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-white font-semibold">{item.itemId.name}</p>
-                        <p className="text-slate-400 text-sm">{item.itemId.category}</p>
+                {rentalData?.rentedItems && rentalData.rentedItems.length > 0 ? (
+                  rentalData.rentedItems.map((item, index) => (
+                    <div key={index} className="bg-slate-600 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-white font-semibold">{item?.itemId?.name || 'Unknown Item'}</p>
+                          <p className="text-slate-400 text-sm">{item?.itemId?.category || 'N/A'}</p>
+                        </div>
+                        <span className="bg-slate-500 text-white px-3 py-1 rounded text-sm font-medium">
+                          Qty: {item?.quantity || 0}
+                        </span>
                       </div>
-                      <span className="bg-slate-500 text-white px-3 py-1 rounded text-sm font-medium">
-                        Qty: {item.quantity}
-                      </span>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-400">Daily Rate:</span>
+                        <span className="text-green-400 font-semibold">Rs. {item?.dailyRate || 0}/day</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-slate-400">Daily Rate:</span>
-                      <span className="text-green-400 font-semibold">Rs. {item.dailyRate}/day</span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-slate-400 text-center py-4">No items in this rental</p>
+                )}
               </div>
             </div>
           </div>
@@ -318,7 +322,7 @@ const Returns = () => {
                     <p className="text-slate-400 text-sm mb-1">Days Rented</p>
                     <p className="text-white text-2xl font-bold">{daysRented} days</p>
                     <p className="text-slate-500 text-xs mt-1">
-                      From {formatDate(rentalData.rentDate)} to today
+                      From {rentalData?.rentDate ? formatDate(rentalData.rentDate) : 'N/A'} to today
                     </p>
                   </div>
 
@@ -337,7 +341,7 @@ const Returns = () => {
                   <div className="bg-slate-600 rounded-lg p-3">
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Advance Paid</span>
-                      <span className="text-green-400 font-semibold">-{formatCurrency(rentalData.advancePayment)}</span>
+                      <span className="text-green-400 font-semibold">-{formatCurrency(rentalData?.advancePayment || 0)}</span>
                     </div>
                   </div>
 
@@ -353,10 +357,10 @@ const Returns = () => {
               </div>
 
               {/* Notes */}
-              {rentalData.notes && (
+              {rentalData?.notes && (
                 <div className="bg-slate-600 rounded-lg p-3 border-l-4 border-blue-400">
                   <p className="text-slate-400 text-sm mb-1">Notes</p>
-                  <p className="text-white text-sm italic">{rentalData.notes}</p>
+                  <p className="text-white text-sm italic">{rentalData?.notes}</p>
                 </div>
               )}
 
