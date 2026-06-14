@@ -34,9 +34,8 @@ const Layout = ({ children }) => {
     <div className="flex h-screen bg-slate-900">
       {/* Sidebar */}
       <div
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700 transition-all duration-300 flex flex-col fixed left-0 h-screen shadow-xl`}
+        className={`${sidebarOpen ? 'w-64' : 'w-20'
+          } bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700 transition-all duration-300 flex flex-col fixed left-0 h-screen shadow-xl`}
       >
         {/* Logo/Header */}
         <div className="p-6 border-b border-slate-700">
@@ -62,10 +61,9 @@ const Layout = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                  `flex items-center gap-4 px-4 py-3 rounded-lg transition-all duration-200 group ${isActive
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                   }`
                 }
               >
@@ -95,19 +93,7 @@ const Layout = ({ children }) => {
             )}
           </button>
 
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `flex items-center justify-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-              }`
-            }
-          >
-            <Settings size={20} />
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </NavLink>
+
 
           {/* Logout */}
           <button
@@ -123,9 +109,8 @@ const Layout = ({ children }) => {
 
       {/* Main Content Area */}
       <div
-        className={`${
-          sidebarOpen ? 'ml-64' : 'ml-20'
-        } flex-1 overflow-auto transition-all duration-300`}
+        className={`${sidebarOpen ? 'ml-64' : 'ml-20'
+          } flex-1 overflow-auto transition-all duration-300`}
       >
         {/* Top Bar */}
         <div className="bg-slate-800 border-b border-slate-700 px-8 py-4 shadow-sm sticky top-0 z-10">
