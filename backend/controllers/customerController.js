@@ -134,7 +134,7 @@ const updateCustomer = async (req, res) => {
     }
 
     // Update fields if provided
-    if (name !== undefined) customerId = name;
+    if (name !== undefined) customer.name = name;
     if (phone !== undefined) customer.phone = phone;
     if (nic !== undefined) customer.nic = nic;
     if (nicImageUrl !== undefined) customer.nicImageUrl = nicImageUrl;
