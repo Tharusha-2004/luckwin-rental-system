@@ -1,4 +1,5 @@
 const Customer = require('../models/Customer');
+const Rental   = require('../models/Rental');
 
 /**
  * Customer Controller
@@ -211,9 +212,10 @@ const updateCustomer = async (req, res) => {
   }
 };
 
-// Delete customer
+// Delete customer — blocked if the customer has any Active rentals
 const deleteCustomer = async (req, res) => {
   try {
+    // ── 1. Verify customer exists ─────────────────────────────────────────────
     const customer = await Customer.findById(req.params.id);
     if (!customer) {
       return res.status(404).json({
@@ -222,6 +224,22 @@ const deleteCustomer = async (req, res) => {
       });
     }
 
+    // ── 2. Block deletion if any Active rental is linked to this customer ─────
+    const activeRentalCount = await Rental.countDocuments({
+      customerId: req.params.id,
+      status: 'Active',
+    });
+
+    if (activeRentalCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error:
+          'Cannot delete customer. They have active rentals that must be returned first.',
+        activeRentals: activeRentalCount,
+      });
+    }
+
+    // ── 3. Safe to delete ─────────────────────────────────────────────────────
     await Customer.findByIdAndDelete(req.params.id);
 
     res.json({
