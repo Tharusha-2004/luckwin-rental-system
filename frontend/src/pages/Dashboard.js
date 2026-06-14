@@ -126,7 +126,11 @@ const Dashboard = () => {
                     <td className="px-6 py-3 font-mono text-xs text-blue-600">
                       {rental.agreementToken.slice(0, 8)}...
                     </td>
-                    <td className="px-6 py-3">{rental.customerId.name}</td>
+                    <td className="px-6 py-3">
+                      {rental.customerId?.name || (
+                        <span className="italic text-gray-400">Deleted Customer</span>
+                      )}
+                    </td>
                     <td className="px-6 py-3">{formatDate(rental.rentDate)}</td>
                     <td className="px-6 py-3">{formatDate(rental.expectedReturnDate)}</td>
                     <td className="px-6 py-3 font-semibold">{formatCurrency(rental.totalCost)}</td>
@@ -153,12 +157,14 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {overdueRentals.slice(0, 4).map((rental) => (
                   <div key={rental._id} className="bg-white rounded p-3 border border-red-200">
-                    <p className="font-semibold text-gray-900">{rental.customerId.name}</p>
+                    <p className="font-semibold text-gray-900">
+                      {rental.customerId?.name || <span className="italic text-gray-400">Deleted Customer</span>}
+                    </p>
                     <p className="text-sm text-gray-600">
                       Due: {formatDate(rental.expectedReturnDate)}
                     </p>
                     <p className="text-sm text-red-600 font-semibold">
-                      {rental.customerId.phone}
+                      {rental.customerId?.phone || '—'}
                     </p>
                   </div>
                 ))}
