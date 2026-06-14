@@ -73,12 +73,16 @@ const getCustomerHistory = async (req, res) => {
   }
 };
 
-// Create new customer
+// Find-or-Create customer
+// If a customer with the same phone OR nic already exists, update their name/nic
+// and return 200. Otherwise create a fresh record and return 201.
+// Either way the response always contains `customer` so the frontend can
+// consistently read `response.data.customer._id`.
 const createCustomer = async (req, res) => {
   try {
     const { name, phone, nic, nicImageUrl, email, address, city, companyName, notes } = req.body;
 
-    // Validation
+    // ── Validation ────────────────────────────────────────────────────────────
     if (!name || !phone || !nic) {
       return res.status(400).json({
         success: false,
@@ -86,10 +90,38 @@ const createCustomer = async (req, res) => {
       });
     }
 
+    // ── Look for an existing customer matching phone OR nic ───────────────────
+    const existing = await Customer.findOne({
+      $or: [{ phone: phone.trim() }, { nic: nic.trim() }],
+    });
+
+    if (existing) {
+      // Update mutable fields in case they changed since last visit
+      existing.name = name.trim();
+      existing.nic  = nic.trim();
+      if (nicImageUrl  !== undefined) existing.nicImageUrl  = nicImageUrl;
+      if (email        !== undefined) existing.email        = email;
+      if (address      !== undefined) existing.address      = address;
+      if (city         !== undefined) existing.city         = city;
+      if (companyName  !== undefined) existing.companyName  = companyName;
+      if (notes        !== undefined) existing.notes        = notes;
+
+      await existing.save();
+
+      return res.status(200).json({
+        success:  true,
+        found:    true,
+        message:  'Existing customer found and updated',
+        customer: existing,   // consistent key for frontend
+        data:     existing,   // kept for backward-compat
+      });
+    }
+
+    // ── No match — create a new customer ─────────────────────────────────────
     const customer = new Customer({
-      name,
-      phone,
-      nic,
+      name: name.trim(),
+      phone: phone.trim(),
+      nic: nic.trim(),
       nicImageUrl,
       email,
       address,
@@ -100,18 +132,31 @@ const createCustomer = async (req, res) => {
 
     await customer.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Customer created successfully',
-      data: customer,
+    return res.status(201).json({
+      success:  true,
+      found:    false,
+      message:  'Customer created successfully',
+      customer,   // consistent key for frontend
+      data:     customer,   // kept for backward-compat
     });
+
   } catch (error) {
+    // Edge-case: race condition where two concurrent requests both pass the
+    // findOne check — handle the resulting duplicate-key error gracefully.
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({
-        success: false,
-        error: `Customer with this ${duplicateField} already exists`,
-      });
+      try {
+        const recovered = await Customer.findOne({ [duplicateField]: req.body[duplicateField]?.trim() });
+        if (recovered) {
+          return res.status(200).json({
+            success:  true,
+            found:    true,
+            message:  'Existing customer found (race-condition recovery)',
+            customer: recovered,
+            data:     recovered,
+          });
+        }
+      } catch (_) { /* fall through to generic error */ }
     }
     res.status(500).json({
       success: false,
