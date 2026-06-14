@@ -118,9 +118,13 @@ const Returns = () => {
     );
   };
 
-  const daysRented      = rentalData ? calculateDaysRented()  : 0;
-  const totalCost       = rentalData ? calculateTotalCost()   : 0;
-  const finalAmountDue  = Math.max(0, totalCost - (rentalData?.advancePayment || 0));
+  const daysRented  = rentalData ? calculateDaysRented() : 0;
+  const totalCost   = rentalData ? calculateTotalCost()  : 0;
+  const advancePaid = rentalData?.advancePayment || 0;
+  // Positive  → customer owes us
+  // Zero      → fully settled
+  // Negative  → we owe the customer a refund
+  const balance     = totalCost - advancePaid;
 
   // ── Confirm return ────────────────────────────────────────────────────────
   const handleConfirmReturn = async () => {
@@ -446,14 +450,33 @@ const Returns = () => {
                 </span>
               </div>
 
-              {/* Final amount */}
-              <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4 border-2 border-orange-400">
-                <p className="text-slate-100 text-sm mb-1">Final Amount Due</p>
-                <p className="text-white text-3xl font-bold">{formatCurrency(finalAmountDue)}</p>
-                {finalAmountDue === 0 && (
-                  <p className="text-green-300 text-sm mt-1">✓ Fully paid with advance</p>
-                )}
-              </div>
+              {/* ── Final Balance: 3 scenarios ───────────────────────────── */}
+              {balance > 0 && (
+                // Scenario 1: Customer still owes money
+                <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4 border-2 border-orange-400">
+                  <p className="text-slate-100 text-sm mb-1">Final Amount Due</p>
+                  <p className="text-white text-3xl font-bold">{formatCurrency(balance)}</p>
+                  <p className="text-orange-200 text-xs mt-1">Collect from customer on return</p>
+                </div>
+              )}
+
+              {balance === 0 && (
+                // Scenario 2: Perfect match — nothing to collect or refund
+                <div className="bg-gradient-to-r from-emerald-700 to-green-700 rounded-lg p-4 border-2 border-emerald-400">
+                  <p className="text-emerald-100 text-sm mb-1">Fully Settled</p>
+                  <p className="text-white text-3xl font-bold">{formatCurrency(0)}</p>
+                  <p className="text-emerald-200 text-xs mt-1">✓ Advance exactly covers the total</p>
+                </div>
+              )}
+
+              {balance < 0 && (
+                // Scenario 3: Advance exceeded total — refund the customer
+                <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-lg p-4 border-2 border-green-300">
+                  <p className="text-green-100 text-sm mb-1 font-semibold">Refund to Customer</p>
+                  <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(balance))}</p>
+                  <p className="text-green-100 text-xs mt-1">Excess advance to be returned.</p>
+                </div>
+              )}
 
               {/* Error inside panel */}
               {searchError && (
