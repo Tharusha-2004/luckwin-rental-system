@@ -4,19 +4,25 @@
  * Route: /receipt/:token
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { receiptAPI } from '../services/api';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorAlert from './ErrorAlert';
-import { Download, Printer, AlertCircle } from 'lucide-react';
+import { Download, Printer, AlertCircle, Loader } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const ReceiptPage = () => {
   const { token } = useParams();
-  const [receipt, setReceipt] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [receipt, setReceipt]     = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Ref attached to the white receipt card — only this section is captured
+  const receiptRef = useRef(null);
 
   useEffect(() => {
     fetchReceipt();
@@ -43,9 +49,52 @@ const ReceiptPage = () => {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF download functionality
-    alert('PDF download feature coming soon');
+  const handleDownloadPDF = async () => {
+    if (!receiptRef.current || pdfLoading) return;
+    try {
+      setPdfLoading(true);
+
+      // Capture the receipt card as a high-resolution canvas (scale 2 = retina)
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData   = canvas.toDataURL('image/png');
+      const pdf       = new jsPDF('p', 'mm', 'a4');
+
+      // A4 dimensions in mm
+      const pageWidth  = pdf.internal.pageSize.getWidth();   // 210
+      const pageHeight = pdf.internal.pageSize.getHeight();  // 297
+
+      // Scale the captured image to fit A4 width, keep aspect ratio
+      const imgWidthMM  = pageWidth;
+      const imgHeightMM = (canvas.height / canvas.width) * imgWidthMM;
+
+      // If content is taller than one page, jsPDF will clip — split into pages
+      let yOffset = 0;
+      while (yOffset < imgHeightMM) {
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(
+          imgData,
+          'PNG',
+          0,                              // x
+          -yOffset,                       // y (negative scrolls down the image)
+          imgWidthMM,
+          imgHeightMM
+        );
+        yOffset += pageHeight;
+      }
+
+      pdf.save(`Luckwin_Receipt_${receipt?.agreementToken?.slice(0, 8) || 'download'}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again or use the Print button.');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   if (loading) {
@@ -80,15 +129,18 @@ const ReceiptPage = () => {
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            disabled={pdfLoading}
+            className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
           >
-            <Download size={18} />
-            PDF
+            {pdfLoading
+              ? <Loader size={18} className="animate-spin" />
+              : <Download size={18} />}
+            {pdfLoading ? 'Generating…' : 'PDF'}
           </button>
         </div>
 
         {/* Receipt Container */}
-        <div className="bg-white rounded-lg shadow-lg p-8 print:shadow-none">
+        <div ref={receiptRef} className="bg-white rounded-lg shadow-lg p-8 print:shadow-none">
           {/* Header */}
           <div className="border-b-2 border-gray-200 pb-6 mb-6">
             <div className="text-center">
