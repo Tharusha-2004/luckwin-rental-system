@@ -36,4 +36,7 @@ router.post('/', rentalController.createRental);
 // Process rental return
 router.post('/:id/return', rentalController.processReturn);
 
+// Update rental (Edit Bill)
+router.put('/:id', rentalController.updateRental);
+
 module.exports = router;

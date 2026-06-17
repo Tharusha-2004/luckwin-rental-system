@@ -399,6 +399,70 @@ const searchRentals = async (req, res) => {
   }
 };
 
+const updateRental = async (req, res) => {
+  try {
+    const rentalId = req.params.id;
+    const { rentedItems, subtotal, advancePaid } = req.body;
+
+    const existingRental = await Rental.findById(rentalId);
+    if (!existingRental) {
+      return res.status(404).json({ success: false, error: 'Rental record not found' });
+    }
+
+    // Restore old item stock
+    for (const oldItem of existingRental.rentedItems) {
+      const inventoryItem = await Item.findById(oldItem.itemId);
+      if (inventoryItem) {
+        inventoryItem.availableQuantity += oldItem.quantity;
+        await inventoryItem.save();
+      }
+    }
+
+    // Deduct new item stock
+    const preparedItems = [];
+    for (const newItem of rentedItems) {
+      const inventoryItem = await Item.findById(newItem.itemId || newItem.item);
+      if (!inventoryItem) {
+        return res.status(404).json({ success: false, error: 'Item not found in inventory' });
+      }
+      if (inventoryItem.availableQuantity < newItem.quantity) {
+        return res.status(400).json({
+          success: false,
+          error: `Not enough stock for ${inventoryItem.name}. Only ${inventoryItem.availableQuantity} available.`,
+        });
+      }
+      inventoryItem.availableQuantity -= newItem.quantity;
+      await inventoryItem.save();
+
+      preparedItems.push({
+        itemId: inventoryItem._id,
+        quantity: newItem.quantity,
+        dailyRate: inventoryItem.dailyRate,
+      });
+    }
+
+    existingRental.rentedItems = preparedItems;
+    existingRental.totalCost = subtotal;
+    existingRental.advancePayment = advancePaid !== undefined ? advancePaid : existingRental.advancePayment;
+    existingRental.finalAmount = existingRental.totalCost - existingRental.advancePayment;
+
+    const updatedRental = await existingRental.save();
+
+    const populated = await Rental.findById(updatedRental._id)
+      .populate('customerId', 'name phone')
+      .populate('rentedItems.itemId', 'name dailyRate');
+
+    res.status(200).json({
+      success: true,
+      message: 'Rental updated successfully',
+      data: populated,
+    });
+  } catch (error) {
+    console.error('Error updating rental:', error);
+    res.status(500).json({ success: false, error: 'Server error while updating rental' });
+  }
+};
+
 module.exports = {
   getAllRentals,
   getRentalById,
@@ -408,4 +472,5 @@ module.exports = {
   getActiveRentals,
   getOverdueRentals,
   searchRentals,
+  updateRental,
 };
