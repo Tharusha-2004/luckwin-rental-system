@@ -75,7 +75,7 @@ const createRental = async (req, res) => {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: customerId, rentedItems, expectedReturnDate',
+        error: "Missing required fields. Please check customer, items, and return date.",
       });
     }
 
@@ -118,7 +118,7 @@ const createRental = async (req, res) => {
         await session.abortTransaction();
         return res.status(400).json({
           success: false,
-          error: `Insufficient quantity for item ${dbItem.name}. Available: ${dbItem.availableQuantity}`,
+          error: `Not enough stock for ${dbItem.name}. Only ${dbItem.availableQuantity} available.`,
         });
       }
 
@@ -173,7 +173,7 @@ const createRental = async (req, res) => {
     await session.abortTransaction();
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: error.message || "An unexpected server error occurred.",
     });
   } finally {
     await session.endSession();

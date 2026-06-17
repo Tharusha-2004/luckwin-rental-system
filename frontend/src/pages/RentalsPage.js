@@ -104,8 +104,18 @@ const RentalsPage = () => {
   const handleSubmitRental = async (e) => {
     e.preventDefault();
 
-    if (!selectedCustomer || selectedItems.length === 0 || !expectedReturnDate) {
+    if (!selectedCustomer || !expectedReturnDate) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (selectedItems.length === 0) {
+      setError('Please add at least one item to the rental.');
+      return;
+    }
+
+    if (selectedItems.some(item => !item.quantity || item.quantity <= 0)) {
+      setError('All rented items must have a quantity greater than zero.');
       return;
     }
 
@@ -135,7 +145,7 @@ const RentalsPage = () => {
         fetchRentals();
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create rental');
+      setError(err.response?.data?.error || "Failed to connect to the server. Please check your network.");
     } finally {
       setFormSubmitting(false);
     }

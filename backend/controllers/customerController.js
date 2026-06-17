@@ -159,6 +159,14 @@ const createCustomer = async (req, res) => {
         }
       } catch (_) { /* fall through to generic error */ }
     }
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        error: messages.join(', ')
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: error.message,

@@ -140,8 +140,8 @@ const NewRental = () => {
     setSuccess('');
 
     // Validation
-    if (!customer.name.trim()) {
-      setError('Customer name is required');
+    if (!customer.name.trim() || customer.name.trim().length < 3) {
+      setError('Customer name must be at least 3 characters');
       return;
     }
     if (!customer.phone.trim()) {
