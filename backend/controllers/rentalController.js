@@ -19,7 +19,7 @@ const getAllRentals = async (req, res) => {
     if (customerId) filter.customerId = customerId;
 
     const rentals = await Rental.find(filter)
-      .populate('customerId', 'name phone')
+      .populate('customerId', 'name phone nic')
       .populate('rentedItems.itemId', 'name dailyRate')
       .sort({ createdAt: -1 });
 
@@ -40,8 +40,8 @@ const getAllRentals = async (req, res) => {
 const getRentalById = async (req, res) => {
   try {
     const rental = await Rental.findById(req.params.id)
-      .populate('customerId')
-      .populate('rentedItems.itemId');
+      .populate('customerId', 'name phone nic')
+      .populate('rentedItems.itemId', 'name dailyRate');
 
     if (!rental) {
       return res.status(404).json({
@@ -280,7 +280,7 @@ const getRentalByToken = async (req, res) => {
 const getActiveRentals = async (req, res) => {
   try {
     const rentals = await Rental.find({ status: 'Active' })
-      .populate('customerId', 'name phone')
+      .populate('customerId', 'name phone nic')
       .populate('rentedItems.itemId', 'name')
       .sort({ expectedReturnDate: 1 });
 
@@ -305,7 +305,7 @@ const getOverdueRentals = async (req, res) => {
       status: 'Active',
       expectedReturnDate: { $lt: now },
     })
-      .populate('customerId', 'name phone')
+      .populate('customerId', 'name phone nic')
       .populate('rentedItems.itemId', 'name')
       .sort({ expectedReturnDate: 1 });
 
@@ -449,7 +449,7 @@ const updateRental = async (req, res) => {
     const updatedRental = await existingRental.save();
 
     const populated = await Rental.findById(updatedRental._id)
-      .populate('customerId', 'name phone')
+      .populate('customerId', 'name phone nic')
       .populate('rentedItems.itemId', 'name dailyRate');
 
     res.status(200).json({

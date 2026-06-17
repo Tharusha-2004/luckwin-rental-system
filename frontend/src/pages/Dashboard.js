@@ -248,7 +248,7 @@ const Dashboard = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Token</th>
+                  <th className="px-6 py-3 text-left font-semibold text-gray-700">Customer NIC</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Customer</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Rent Date</th>
                   <th className="px-6 py-3 text-left font-semibold text-gray-700">Due Date</th>
@@ -260,7 +260,7 @@ const Dashboard = () => {
                 {activeRentals.slice(0, 5).map((rental) => (
                   <tr key={rental._id} className="hover:bg-gray-50">
                     <td className="px-6 py-3 font-mono text-xs text-blue-600">
-                      {rental.agreementToken.slice(0, 8)}...
+                      {rental.customerId?.nic || 'N/A'}
                     </td>
                     <td className="px-6 py-3">
                       {rental.customerId?.name || <span className="italic text-gray-400">Deleted Customer</span>}
