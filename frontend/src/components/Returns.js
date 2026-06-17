@@ -1,11 +1,10 @@
 /**
  * Returns Component
  * Search active rentals by Agreement Token OR Customer NIC.
- * When multiple active rentals exist (NIC search), shows a selection list
- * before revealing the full return-processing panel.
+ * Process returns and view/download return receipts.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import apiClient from '../services/api';
 import {
   Search,
@@ -19,8 +18,13 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  FileCheck,
+  Download,
+  X
 } from 'lucide-react';
 import { formatDate, formatCurrency, calculateDaysDifference } from '../utils/helpers';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const Returns = () => {
   // ── Search state ─────────────────────────────────────────────────────────
@@ -29,7 +33,6 @@ const Returns = () => {
   const [searchError, setSearchError]       = useState('');
 
   // ── Results state ─────────────────────────────────────────────────────────
-  // results = array of rentals returned from API (1 for token, N for NIC)
   const [results, setResults]               = useState([]);
   const [searchType, setSearchType]         = useState(''); // 'token' | 'nic'
 
@@ -39,6 +42,11 @@ const Returns = () => {
   // ── Return processing state ───────────────────────────────────────────────
   const [isProcessing, setIsProcessing]     = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // ── Receipt Modal State ──────────────────────────────────────────────────
+  const [viewingReceipt, setViewingReceipt] = useState(null);
+  const [pdfLoading, setPdfLoading]         = useState(false);
+  const receiptRef = useRef(null);
 
   // ── Handle search ─────────────────────────────────────────────────────────
   const handleSearch = async () => {
@@ -55,7 +63,6 @@ const Returns = () => {
 
     try {
       setIsSearching(true);
-      // apiClient automatically attaches Authorization: Bearer <token>
       const response = await apiClient.get(`/rentals/search/${encodeURIComponent(query)}`);
 
       if (response.data.success) {
@@ -63,10 +70,8 @@ const Returns = () => {
         setSearchType(response.data.searchType);
 
         if (data.length === 1) {
-          // Single result — go straight to processing panel
           setRentalData(data[0]);
         } else {
-          // Multiple results (NIC search) — show selection list
           setResults(data);
         }
       } else {
@@ -87,43 +92,45 @@ const Returns = () => {
     if (e.key === 'Enter') handleSearch();
   };
 
-  // ── Select a specific rental from multi-result list ───────────────────────
   const handleSelectRental = (rental) => {
     setResults([]);
     setRentalData(rental);
   };
 
-  // ── Reset back to search ───────────────────────────────────────────────────
   const handleReset = () => {
     setRentalData(null);
     setResults([]);
     setSearchError('');
     setSearchInput('');
     setShowSuccessMessage(false);
+    setViewingReceipt(null);
   };
 
   // ── Cost helpers ──────────────────────────────────────────────────────────
-  const calculateDaysRented = () => {
-    if (!rentalData) return 0;
-    const today = new Date().toISOString().split('T')[0];
-    return Math.max(1, calculateDaysDifference(rentalData.rentDate, today));
+  const calculateDaysRented = (rental) => {
+    if (!rental) return 0;
+    const end = rental.status === 'Returned' && rental.actualReturnDate 
+      ? rental.actualReturnDate 
+      : new Date().toISOString().split('T')[0];
+    return Math.max(1, calculateDaysDifference(rental.rentDate, end));
   };
 
-  const calculateTotalCost = () => {
-    if (!rentalData) return 0;
-    const days = calculateDaysRented();
-    return rentalData.rentedItems.reduce(
+  const calculateTotalCost = (rental) => {
+    if (!rental) return 0;
+    // If returned, totalCost is already recalculated by backend
+    if (rental.status === 'Returned' && rental.totalCost !== undefined) {
+      return rental.totalCost;
+    }
+    const days = calculateDaysRented(rental);
+    return rental.rentedItems?.reduce(
       (sum, item) => sum + item.quantity * item.dailyRate * days,
       0
-    );
+    ) || 0;
   };
 
-  const daysRented  = rentalData ? calculateDaysRented() : 0;
-  const totalCost   = rentalData ? calculateTotalCost()  : 0;
+  const daysRented  = rentalData ? calculateDaysRented(rentalData) : 0;
+  const totalCost   = rentalData ? calculateTotalCost(rentalData)  : 0;
   const advancePaid = rentalData?.advancePayment || 0;
-  // Positive  → customer owes us
-  // Zero      → fully settled
-  // Negative  → we owe the customer a refund
   const balance     = totalCost - advancePaid;
 
   // ── Confirm return ────────────────────────────────────────────────────────
@@ -139,9 +146,10 @@ const Returns = () => {
 
       if (response.data.success) {
         setShowSuccessMessage(true);
-        setTimeout(() => {
-          handleReset();
-        }, 3500);
+        const returnedRental = response.data.data;
+        setRentalData(returnedRental);
+        // Auto-open the receipt modal
+        setViewingReceipt(returnedRental);
       } else {
         setSearchError(response.data.message || 'Failed to process return.');
       }
@@ -154,6 +162,44 @@ const Returns = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // ── PDF Download Logic ─────────────────────────────────────────────────────
+  const handleDownloadPDF = async () => {
+    if (!receiptRef.current || pdfLoading) return;
+    try {
+      setPdfLoading(true);
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+      const imgData     = canvas.toDataURL('image/png');
+      const pdf         = new jsPDF('p', 'mm', 'a4');
+      const pageWidth   = pdf.internal.pageSize.getWidth();
+      const pageHeight  = pdf.internal.pageSize.getHeight();
+      const imgWidthMM  = pageWidth;
+      const imgHeightMM = (canvas.height / canvas.width) * imgWidthMM;
+
+      let yOffset = 0;
+      while (yOffset < imgHeightMM) {
+        if (yOffset > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, -yOffset, imgWidthMM, imgHeightMM);
+        yOffset += pageHeight;
+      }
+      const token = viewingReceipt?.agreementToken?.slice(0, 8) || 'Return';
+      pdf.save(`Luckwin_Return_Receipt_${token}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const closeReceiptModal = () => {
+    setViewingReceipt(null);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -260,6 +306,7 @@ const Returns = () => {
                 .map((ri) => ri.itemId?.name || 'Unknown')
                 .join(', ');
               const isOverdue = rental.status === 'Overdue';
+              const isReturned = rental.status === 'Returned';
 
               return (
                 <div
@@ -275,9 +322,11 @@ const Returns = () => {
                       </span>
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          isOverdue
+                          isReturned 
+                            ? 'bg-green-500/20 text-green-300 border border-green-500/40'
+                            : isOverdue
                             ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                            : 'bg-green-500/20 text-green-300 border border-green-500/40'
+                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                         }`}
                       >
                         {isOverdue ? <AlertCircle size={10} /> : <CheckCircle size={10} />}
@@ -304,9 +353,18 @@ const Returns = () => {
                   </div>
 
                   {/* CTA */}
-                  <div className="ml-4 flex items-center gap-2 text-green-400 group-hover:text-green-300 transition-colors flex-shrink-0">
-                    <span className="text-sm font-semibold hidden sm:block">Process Return</span>
-                    <ChevronRight size={20} />
+                  <div className="ml-4 flex items-center gap-2 flex-shrink-0 transition-colors">
+                    {isReturned ? (
+                      <div className="text-teal-400 group-hover:text-teal-300 flex items-center gap-1">
+                        <span className="text-sm font-semibold hidden sm:block">View Receipt</span>
+                        <ChevronRight size={20} />
+                      </div>
+                    ) : (
+                      <div className="text-green-400 group-hover:text-green-300 flex items-center gap-1">
+                        <span className="text-sm font-semibold hidden sm:block">Process Return</span>
+                        <ChevronRight size={20} />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -382,7 +440,9 @@ const Returns = () => {
                   <p className="text-slate-400 text-sm">Status</p>
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-0.5 ${
-                      rentalData.status === 'Overdue'
+                      rentalData.status === 'Returned'
+                        ? 'bg-green-500/30 text-green-300'
+                        : rentalData.status === 'Overdue'
                         ? 'bg-red-500/30 text-red-300'
                         : 'bg-blue-500/30 text-blue-300'
                     }`}
@@ -390,6 +450,12 @@ const Returns = () => {
                     {rentalData.status}
                   </span>
                 </div>
+                {rentalData.actualReturnDate && (
+                  <div>
+                    <p className="text-slate-400 text-sm">Actual Return</p>
+                    <p className="text-white font-semibold">{formatDate(rentalData.actualReturnDate)}</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -432,7 +498,7 @@ const Returns = () => {
                 <p className="text-slate-400 text-sm mb-1">Days Rented</p>
                 <p className="text-white text-2xl font-bold">{daysRented} days</p>
                 <p className="text-slate-500 text-xs mt-1">
-                  From {formatDate(rentalData.rentDate)} to today
+                  From {formatDate(rentalData.rentDate)} to {rentalData.status === 'Returned' && rentalData.actualReturnDate ? formatDate(rentalData.actualReturnDate) : 'today'}
                 </p>
               </div>
 
@@ -446,7 +512,7 @@ const Returns = () => {
               <div className="bg-slate-600 rounded-lg p-3 flex justify-between">
                 <span className="text-slate-400 text-sm">Advance Paid</span>
                 <span className="text-green-400 font-semibold">
-                  -{formatCurrency(rentalData.advancePayment || 0)}
+                  -{formatCurrency(advancePaid)}
                 </span>
               </div>
 
@@ -456,7 +522,9 @@ const Returns = () => {
                 <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-4 border-2 border-orange-400">
                   <p className="text-slate-100 text-sm mb-1">Final Amount Due</p>
                   <p className="text-white text-3xl font-bold">{formatCurrency(balance)}</p>
-                  <p className="text-orange-200 text-xs mt-1">Collect from customer on return</p>
+                  <p className="text-orange-200 text-xs mt-1">
+                    {rentalData.status === 'Returned' ? 'Collected from customer on return' : 'Collect from customer on return'}
+                  </p>
                 </div>
               )}
 
@@ -474,7 +542,9 @@ const Returns = () => {
                 <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-lg p-4 border-2 border-green-300">
                   <p className="text-green-100 text-sm mb-1 font-semibold">Refund to Customer</p>
                   <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(balance))}</p>
-                  <p className="text-green-100 text-xs mt-1">Excess advance to be returned.</p>
+                  <p className="text-green-100 text-xs mt-1">
+                    {rentalData.status === 'Returned' ? 'Excess advance refunded' : 'Excess advance to be returned.'}
+                  </p>
                 </div>
               )}
 
@@ -486,21 +556,32 @@ const Returns = () => {
                 </div>
               )}
 
-              {/* Confirm Return button */}
-              <button
-                onClick={handleConfirmReturn}
-                disabled={isProcessing}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
-              >
-                {isProcessing ? (
-                  <><Loader className="animate-spin" size={20} /> Processing…</>
-                ) : (
-                  <><CheckCircle size={20} /> Confirm Return</>
-                )}
-              </button>
-              <p className="text-slate-500 text-xs text-center">
-                This will mark the rental as returned and restore inventory stock.
-              </p>
+              {/* CTA Button based on status */}
+              {rentalData.status === 'Returned' ? (
+                <button
+                  onClick={() => setViewingReceipt(rentalData)}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
+                >
+                  <FileCheck size={20} /> View Return Receipt
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleConfirmReturn}
+                    disabled={isProcessing}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
+                  >
+                    {isProcessing ? (
+                      <><Loader className="animate-spin" size={20} /> Processing…</>
+                    ) : (
+                      <><CheckCircle size={20} /> Confirm Return</>
+                    )}
+                  </button>
+                  <p className="text-slate-500 text-xs text-center">
+                    This will mark the rental as returned and restore inventory stock.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -516,6 +597,162 @@ const Returns = () => {
           </p>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          RETURN RECEIPT MODAL
+      ══════════════════════════════════════════════════════════════════════ */}
+      {viewingReceipt && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
+          style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeReceiptModal(); }}
+        >
+          <div className="w-full max-w-lg my-8 rounded-2xl shadow-2xl overflow-hidden">
+            {/* ── Receipt Content (Captured by html2canvas) ── */}
+            <div ref={receiptRef} className="bg-white text-gray-800 p-8 font-sans">
+              
+              {/* Header */}
+              <div className="text-center border-b-2 border-gray-300 pb-5 mb-5">
+                <p className="text-3xl font-black tracking-widest text-gray-900">🏗️ LUCKWIN STORES</p>
+                <p className="text-sm text-gray-500 mt-1 font-medium tracking-wide uppercase">
+                  Return & Settlement Receipt
+                </p>
+              </div>
+
+              {/* Agreement Token & Info */}
+              <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Agreement Token</p>
+                    <p className="font-mono font-bold text-gray-900 text-sm mt-0.5 break-all">
+                      {viewingReceipt.agreementToken}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                      Returned
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Customer</p>
+                    <p className="font-bold text-gray-900">{viewingReceipt.customerId?.name || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">{viewingReceipt.customerId?.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Dates</p>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Rented:</span> {formatDate(viewingReceipt.rentDate)}
+                    </p>
+                    <p className="text-sm text-gray-700 mt-0.5">
+                      <span className="font-medium">Returned:</span> {formatDate(viewingReceipt.actualReturnDate || new Date())}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Returned Items</p>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left pb-2 text-gray-600 font-semibold">Item</th>
+                      <th className="text-center pb-2 text-gray-600 font-semibold">Qty</th>
+                      <th className="text-right pb-2 text-gray-600 font-semibold">Rate</th>
+                      <th className="text-right pb-2 text-gray-600 font-semibold">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingReceipt.rentedItems?.map((item, idx) => {
+                      const days = calculateDaysRented(viewingReceipt);
+                      const cost = item.quantity * item.dailyRate * days;
+                      return (
+                        <tr key={idx} className="border-b border-gray-100">
+                          <td className="py-2 text-gray-800 font-medium">{item.itemId?.name || 'Item'}</td>
+                          <td className="py-2 text-center text-gray-600">{item.quantity}</td>
+                          <td className="py-2 text-right text-gray-600">{formatCurrency(item.dailyRate)}</td>
+                          <td className="py-2 text-right font-semibold text-gray-800">{formatCurrency(cost)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Financial Settlement */}
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Subtotal ({calculateDaysRented(viewingReceipt)} days)</span>
+                  <span className="font-semibold">{formatCurrency(calculateTotalCost(viewingReceipt))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Advance Paid</span>
+                  <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
+                </div>
+                
+                {(() => {
+                  const receiptSubtotal = calculateTotalCost(viewingReceipt);
+                  const receiptAdvance = viewingReceipt.advancePayment || 0;
+                  const receiptBalance = receiptSubtotal - receiptAdvance;
+
+                  return (
+                    <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${
+                      receiptBalance > 0 ? 'bg-gray-100 border border-gray-300' 
+                      : receiptBalance < 0 ? 'bg-teal-50 border border-teal-200'
+                      : 'bg-green-50 border border-green-200'
+                    }`}>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-800">
+                          {receiptBalance > 0 ? 'Balance Paid by Customer' : receiptBalance < 0 ? 'Refund Given to Customer' : 'Fully Settled'}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-0.5">Final Settled Amount</span>
+                      </div>
+                      <span className={`font-black text-xl ${
+                        receiptBalance > 0 ? 'text-gray-800'
+                        : receiptBalance < 0 ? 'text-teal-600'
+                        : 'text-green-600'
+                      }`}>
+                        {receiptBalance === 0 ? '✓ Rs. 0.00' : formatCurrency(Math.abs(receiptBalance))}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
+                <p className="font-semibold text-gray-600 mb-0.5">Thank you for choosing Luckwin Stores!</p>
+                <p>Returns & Settlement Processed Successfully</p>
+                <p className="mt-1">Generated: {new Date().toLocaleString('en-GB')}</p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3">
+              <button
+                onClick={closeReceiptModal}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all font-medium text-sm"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfLoading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:bg-teal-600/50 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-teal-500/20"
+              >
+                {pdfLoading
+                  ? <><Loader size={15} className="animate-spin" /> Generating…</>
+                  : <><Download size={15} /> Download as PDF</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
