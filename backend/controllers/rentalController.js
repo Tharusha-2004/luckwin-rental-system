@@ -224,7 +224,7 @@ const processReturn = async (req, res) => {
     }
 
     rental.totalCost = recalculatedCost;
-    rental.discountAmount = req.body.discount || 0;
+    rental.discountAmount = req.body.manualDiscount || 0;
     rental.finalAmount = (recalculatedCost - rental.discountAmount) - rental.advancePayment;
     rental.status = 'Returned';
 

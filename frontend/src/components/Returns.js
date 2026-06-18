@@ -146,7 +146,7 @@ const Returns = () => {
 
       const response = await apiClient.post(`/rentals/${rentalData._id}/return`, {
         actualReturnDate: new Date().toISOString().split('T')[0],
-        discount: discountAmount,
+        manualDiscount: discountAmount,
       });
 
       if (response.data.success) {
@@ -708,7 +708,8 @@ const Returns = () => {
                 {(() => {
                   const receiptSubtotal = calculateTotalCost(viewingReceipt);
                   const receiptAdvance = viewingReceipt.advancePayment || 0;
-                  const receiptBalance = receiptSubtotal - receiptAdvance;
+                  const receiptDiscount = viewingReceipt.discountAmount || 0;
+                  const receiptBalance = receiptSubtotal - receiptAdvance - receiptDiscount;
 
                   return (
                     <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${
