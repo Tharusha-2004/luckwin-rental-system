@@ -48,6 +48,10 @@ const Returns = () => {
   const [pdfLoading, setPdfLoading]         = useState(false);
   const receiptRef = useRef(null);
 
+  // ── Settle & Return Modal State ──────────────────────────────────────────
+  const [showSettleModal, setShowSettleModal] = useState(false);
+  const [discountAmount, setDiscountAmount]   = useState(0);
+
   // ── Handle search ─────────────────────────────────────────────────────────
   const handleSearch = async () => {
     setSearchError('');
@@ -142,12 +146,14 @@ const Returns = () => {
 
       const response = await apiClient.post(`/rentals/${rentalData._id}/return`, {
         actualReturnDate: new Date().toISOString().split('T')[0],
+        discount: discountAmount,
       });
 
       if (response.data.success) {
         setShowSuccessMessage(true);
         const returnedRental = response.data.data;
         setRentalData(returnedRental);
+        setShowSettleModal(false);
         // Auto-open the receipt modal
         setViewingReceipt(returnedRental);
       } else {
@@ -567,15 +573,14 @@ const Returns = () => {
               ) : (
                 <>
                   <button
-                    onClick={handleConfirmReturn}
+                    onClick={() => {
+                      setDiscountAmount(0);
+                      setShowSettleModal(true);
+                    }}
                     disabled={isProcessing}
                     className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-lg font-bold transition transform hover:scale-105"
                   >
-                    {isProcessing ? (
-                      <><Loader className="animate-spin" size={20} /> Processing…</>
-                    ) : (
-                      <><CheckCircle size={20} /> Confirm Return</>
-                    )}
+                    <CheckCircle size={20} /> Process Return
                   </button>
                   <p className="text-slate-500 text-xs text-center">
                     This will mark the rental as returned and restore inventory stock.
@@ -693,6 +698,13 @@ const Returns = () => {
                   <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
                 </div>
                 
+                {viewingReceipt.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-600">Discount Applied</span>
+                    <span className="font-semibold text-blue-600">− {formatCurrency(viewingReceipt.discountAmount)}</span>
+                  </div>
+                )}
+                
                 {(() => {
                   const receiptSubtotal = calculateTotalCost(viewingReceipt);
                   const receiptAdvance = viewingReceipt.advancePayment || 0;
@@ -747,6 +759,89 @@ const Returns = () => {
                   ? <><Loader size={15} className="animate-spin" /> Generating…</>
                   : <><Download size={15} /> Download as PDF</>
                 }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          SETTLE & RETURN MODAL
+      ══════════════════════════════════════════════════════════════════════ */}
+      {showSettleModal && rentalData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSettleModal(false); }}
+        >
+          <div className="bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle className="text-green-400" size={24} /> Settle & Return
+              </h2>
+              <button onClick={() => setShowSettleModal(false)} className="text-slate-400 hover:text-white transition">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                <div className="flex justify-between text-slate-300 mb-2">
+                  <span>Subtotal:</span>
+                  <span className="text-white font-semibold">{formatCurrency(totalCost)}</span>
+                </div>
+                <div className="flex justify-between text-slate-300 mb-4">
+                  <span>Advance Paid:</span>
+                  <span className="text-green-400">-{formatCurrency(advancePaid)}</span>
+                </div>
+                
+                <div className="pt-4 border-t border-slate-600">
+                  <label className="block text-slate-300 font-medium mb-2 text-sm">Manual Discount (Rs.)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalCost}
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              {(() => {
+                const settleBalance = totalCost - discountAmount - advancePaid;
+                return (
+                  <div className={`rounded-lg p-4 border-2 ${
+                    settleBalance > 0 ? 'bg-orange-600/20 border-orange-500/50' 
+                    : settleBalance < 0 ? 'bg-teal-500/20 border-teal-500/50'
+                    : 'bg-green-500/20 border-green-500/50'
+                  }`}>
+                    <p className={`text-sm mb-1 ${
+                      settleBalance > 0 ? 'text-orange-300' 
+                      : settleBalance < 0 ? 'text-teal-300'
+                      : 'text-green-300'
+                    }`}>
+                      {settleBalance > 0 ? 'Amount Due from Customer' : settleBalance < 0 ? 'Refund to Customer' : 'Fully Settled'}
+                    </p>
+                    <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(settleBalance))}</p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="bg-slate-900 px-6 py-4 flex gap-3">
+              <button
+                onClick={() => setShowSettleModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReturn}
+                disabled={isProcessing}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-bold transition disabled:opacity-50"
+              >
+                {isProcessing ? <><Loader className="animate-spin" size={18} /> Processing…</> : 'Confirm Return'}
               </button>
             </div>
           </div>

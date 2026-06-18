@@ -48,6 +48,11 @@ const rentalSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     finalAmount: {
       type: Number,
       // Final amount due = totalCost - advancePayment

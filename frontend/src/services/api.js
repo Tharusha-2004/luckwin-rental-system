@@ -63,7 +63,7 @@ export const rentalsAPI = {
   getOverdue: () => apiClient.get('/rentals/overdue'),
   create: (data) => apiClient.post('/rentals', data),
   update: (id, data) => apiClient.put(`/rentals/${id}`, data),
-  processReturn: (id) => apiClient.post(`/rentals/${id}/return`),
+  processReturn: (id, data) => apiClient.post(`/rentals/${id}/return`, data),
 };
 
 // Receipt API
