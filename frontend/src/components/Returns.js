@@ -831,10 +831,10 @@ const Returns = () => {
                       <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
                     </div>
 
-                    {viewingReceipt.manualDiscount > 0 && (
+                    {((viewingReceipt.manualDiscount || viewingReceipt.discountAmount) > 0) && (
                       <div className="flex justify-between text-sm mt-1">
                         <span className="text-gray-600">Discount</span>
-                        <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.manualDiscount)}</span>
+                        <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.manualDiscount || viewingReceipt.discountAmount)}</span>
                       </div>
                     )}
 
