@@ -28,29 +28,29 @@ import html2canvas from 'html2canvas';
 
 const Returns = () => {
   // ── Search state ─────────────────────────────────────────────────────────
-  const [searchInput, setSearchInput]       = useState('');
-  const [isSearching, setIsSearching]       = useState(false);
-  const [searchError, setSearchError]       = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   // ── Results state ─────────────────────────────────────────────────────────
-  const [results, setResults]               = useState([]);
-  const [searchType, setSearchType]         = useState(''); // 'token' | 'nic'
+  const [results, setResults] = useState([]);
+  const [searchType, setSearchType] = useState(''); // 'token' | 'nic'
 
   // ── Selected rental for processing ───────────────────────────────────────
-  const [rentalData, setRentalData]         = useState(null);
+  const [rentalData, setRentalData] = useState(null);
 
   // ── Return processing state ───────────────────────────────────────────────
-  const [isProcessing, setIsProcessing]     = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // ── Receipt Modal State ──────────────────────────────────────────────────
   const [viewingReceipt, setViewingReceipt] = useState(null);
-  const [pdfLoading, setPdfLoading]         = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const receiptRef = useRef(null);
 
   // ── Settle & Return Modal State ──────────────────────────────────────────
   const [showSettleModal, setShowSettleModal] = useState(false);
-  const [discountAmount, setDiscountAmount]   = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   // ── Handle search ─────────────────────────────────────────────────────────
   const handleSearch = async () => {
@@ -113,8 +113,8 @@ const Returns = () => {
   // ── Cost helpers ──────────────────────────────────────────────────────────
   const calculateDaysRented = (rental) => {
     if (!rental) return 0;
-    const end = rental.status === 'Returned' && rental.actualReturnDate 
-      ? rental.actualReturnDate 
+    const end = rental.status === 'Returned' && rental.actualReturnDate
+      ? rental.actualReturnDate
       : new Date().toISOString().split('T')[0];
     return Math.max(1, calculateDaysDifference(rental.rentDate, end));
   };
@@ -132,10 +132,10 @@ const Returns = () => {
     ) || 0;
   };
 
-  const daysRented  = rentalData ? calculateDaysRented(rentalData) : 0;
-  const totalCost   = rentalData ? calculateTotalCost(rentalData)  : 0;
+  const daysRented = rentalData ? calculateDaysRented(rentalData) : 0;
+  const totalCost = rentalData ? calculateTotalCost(rentalData) : 0;
   const advancePaid = rentalData?.advancePayment || 0;
-  const balance     = totalCost - advancePaid;
+  const balance = totalCost - advancePaid;
 
   // ── Confirm return ────────────────────────────────────────────────────────
   const handleConfirmReturn = async () => {
@@ -152,10 +152,18 @@ const Returns = () => {
       if (response.data.success) {
         setShowSuccessMessage(true);
         const returnedRental = response.data.data;
-        setRentalData(returnedRental);
+
+        // Force the final calculation for the receipt view instantly
+        const updatedReceiptData = {
+          ...returnedRental,
+          manualDiscount: discountAmount,
+          finalSettledAmount: (totalCost - advancePaid - discountAmount)
+        };
+
+        setRentalData(updatedReceiptData);
         setShowSettleModal(false);
         // Auto-open the receipt modal
-        setViewingReceipt(returnedRental);
+        setViewingReceipt(updatedReceiptData);
       } else {
         setSearchError(response.data.message || 'Failed to process return.');
       }
@@ -181,11 +189,11 @@ const Returns = () => {
         logging: false,
         backgroundColor: '#ffffff',
       });
-      const imgData     = canvas.toDataURL('image/png');
-      const pdf         = new jsPDF('p', 'mm', 'a4');
-      const pageWidth   = pdf.internal.pageSize.getWidth();
-      const pageHeight  = pdf.internal.pageSize.getHeight();
-      const imgWidthMM  = pageWidth;
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidthMM = pageWidth;
       const imgHeightMM = (canvas.height / canvas.width) * imgWidthMM;
 
       let yOffset = 0;
@@ -327,13 +335,12 @@ const Returns = () => {
                         {rental.agreementToken}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          isReturned 
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isReturned
                             ? 'bg-green-500/20 text-green-300 border border-green-500/40'
                             : isOverdue
-                            ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                            : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                        }`}
+                              ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                          }`}
                       >
                         {isOverdue ? <AlertCircle size={10} /> : <CheckCircle size={10} />}
                         {rental.status}
@@ -403,9 +410,9 @@ const Returns = () => {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { label: 'Name',    value: rentalData.customerId?.name },
-                  { label: 'Phone',   value: rentalData.customerId?.phone },
-                  { label: 'NIC',     value: rentalData.customerId?.nic },
+                  { label: 'Name', value: rentalData.customerId?.name },
+                  { label: 'Phone', value: rentalData.customerId?.phone },
+                  { label: 'NIC', value: rentalData.customerId?.nic },
                   { label: 'Company', value: rentalData.customerId?.companyName },
                 ].map(({ label, value }) => (
                   <div key={label}>
@@ -445,13 +452,12 @@ const Returns = () => {
                 <div>
                   <p className="text-slate-400 text-sm">Status</p>
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-0.5 ${
-                      rentalData.status === 'Returned'
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-0.5 ${rentalData.status === 'Returned'
                         ? 'bg-green-500/30 text-green-300'
                         : rentalData.status === 'Overdue'
-                        ? 'bg-red-500/30 text-red-300'
-                        : 'bg-blue-500/30 text-blue-300'
-                    }`}
+                          ? 'bg-red-500/30 text-red-300'
+                          : 'bg-blue-500/30 text-blue-300'
+                      }`}
                   >
                     {rentalData.status}
                   </span>
@@ -615,7 +621,7 @@ const Returns = () => {
           <div className="w-full max-w-lg my-8 rounded-2xl shadow-2xl overflow-hidden">
             {/* ── Receipt Content (Captured by html2canvas) ── */}
             <div ref={receiptRef} className="bg-white text-gray-800 p-8 font-sans">
-              
+
               {/* Header */}
               <div className="text-center border-b-2 border-gray-300 pb-5 mb-5">
                 <p className="text-3xl font-black tracking-widest text-gray-900">🏗️ LUCKWIN STORES</p>
@@ -639,7 +645,7 @@ const Returns = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Customer</p>
@@ -697,37 +703,37 @@ const Returns = () => {
                   <span className="text-gray-600">Advance Paid</span>
                   <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
                 </div>
-                
-                {viewingReceipt.discountAmount > 0 && (
+
+                {viewingReceipt.manualDiscount > 0 && (
                   <div className="flex justify-between text-sm mt-1">
-                    <span className="text-gray-600">Discount Applied</span>
-                    <span className="font-semibold text-blue-600">− {formatCurrency(viewingReceipt.discountAmount)}</span>
+                    <span className="text-gray-600">Discount</span>
+                    <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.manualDiscount)}</span>
                   </div>
                 )}
-                
+
                 {(() => {
                   const receiptSubtotal = calculateTotalCost(viewingReceipt);
                   const receiptAdvance = viewingReceipt.advancePayment || 0;
-                  const receiptDiscount = viewingReceipt.discountAmount || 0;
-                  const receiptBalance = receiptSubtotal - receiptAdvance - receiptDiscount;
+                  const receiptDiscount = viewingReceipt.manualDiscount || viewingReceipt.discountAmount || 0;
+                  const receiptBalance = viewingReceipt.finalSettledAmount !== undefined
+                    ? viewingReceipt.finalSettledAmount
+                    : (receiptSubtotal - receiptAdvance - receiptDiscount);
 
                   return (
-                    <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${
-                      receiptBalance > 0 ? 'bg-gray-100 border border-gray-300' 
-                      : receiptBalance < 0 ? 'bg-teal-50 border border-teal-200'
-                      : 'bg-green-50 border border-green-200'
-                    }`}>
+                    <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${receiptBalance > 0 ? 'bg-gray-100 border border-gray-300'
+                        : receiptBalance < 0 ? 'bg-teal-50 border border-teal-200'
+                          : 'bg-green-50 border border-green-200'
+                      }`}>
                       <div className="flex flex-col">
                         <span className="font-bold text-gray-800">
                           {receiptBalance > 0 ? 'Balance Paid by Customer' : receiptBalance < 0 ? 'Refund Given to Customer' : 'Fully Settled'}
                         </span>
                         <span className="text-xs text-gray-500 mt-0.5">Final Settled Amount</span>
                       </div>
-                      <span className={`font-black text-xl ${
-                        receiptBalance > 0 ? 'text-gray-800'
-                        : receiptBalance < 0 ? 'text-teal-600'
-                        : 'text-green-600'
-                      }`}>
+                      <span className={`font-black text-xl ${receiptBalance > 0 ? 'text-gray-800'
+                          : receiptBalance < 0 ? 'text-teal-600'
+                            : 'text-green-600'
+                        }`}>
                         {receiptBalance === 0 ? '✓ Rs. 0.00' : formatCurrency(Math.abs(receiptBalance))}
                       </span>
                     </div>
@@ -795,7 +801,7 @@ const Returns = () => {
                   <span>Advance Paid:</span>
                   <span className="text-green-400">-{formatCurrency(advancePaid)}</span>
                 </div>
-                
+
                 <div className="pt-4 border-t border-slate-600">
                   <label className="block text-slate-300 font-medium mb-2 text-sm">Manual Discount (Rs.)</label>
                   <input
@@ -812,16 +818,14 @@ const Returns = () => {
               {(() => {
                 const settleBalance = totalCost - discountAmount - advancePaid;
                 return (
-                  <div className={`rounded-lg p-4 border-2 ${
-                    settleBalance > 0 ? 'bg-orange-600/20 border-orange-500/50' 
-                    : settleBalance < 0 ? 'bg-teal-500/20 border-teal-500/50'
-                    : 'bg-green-500/20 border-green-500/50'
-                  }`}>
-                    <p className={`text-sm mb-1 ${
-                      settleBalance > 0 ? 'text-orange-300' 
-                      : settleBalance < 0 ? 'text-teal-300'
-                      : 'text-green-300'
+                  <div className={`rounded-lg p-4 border-2 ${settleBalance > 0 ? 'bg-orange-600/20 border-orange-500/50'
+                      : settleBalance < 0 ? 'bg-teal-500/20 border-teal-500/50'
+                        : 'bg-green-500/20 border-green-500/50'
                     }`}>
+                    <p className={`text-sm mb-1 ${settleBalance > 0 ? 'text-orange-300'
+                        : settleBalance < 0 ? 'text-teal-300'
+                          : 'text-green-300'
+                      }`}>
                       {settleBalance > 0 ? 'Amount Due from Customer' : settleBalance < 0 ? 'Refund to Customer' : 'Fully Settled'}
                     </p>
                     <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(settleBalance))}</p>
