@@ -64,6 +64,7 @@ export const rentalsAPI = {
   create: (data) => apiClient.post('/rentals', data),
   update: (id, data) => apiClient.put(`/rentals/${id}`, data),
   processReturn: (id, data) => apiClient.post(`/rentals/${id}/return`, data),
+  delete: (id) => apiClient.delete(`/rentals/${id}`),
 };
 
 // Receipt API

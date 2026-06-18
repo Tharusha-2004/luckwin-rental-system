@@ -39,4 +39,7 @@ router.post('/:id/return', rentalController.processReturn);
 // Update rental (Edit Bill)
 router.put('/:id', rentalController.updateRental);
 
+// Delete rental
+router.delete('/:id', rentalController.deleteRental);
+
 module.exports = router;

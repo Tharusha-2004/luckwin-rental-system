@@ -464,6 +464,20 @@ const updateRental = async (req, res) => {
   }
 };
 
+// Delete rental
+const deleteRental = async (req, res) => {
+  try {
+    const rental = await Rental.findByIdAndDelete(req.params.id);
+    if (!rental) {
+      return res.status(404).json({ success: false, error: 'Rental not found' });
+    }
+    res.json({ success: true, message: 'Rental deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting rental:', error);
+    res.status(500).json({ success: false, error: 'Server error while deleting rental' });
+  }
+};
+
 module.exports = {
   getAllRentals,
   getRentalById,
@@ -474,4 +488,5 @@ module.exports = {
   getOverdueRentals,
   searchRentals,
   updateRental,
+  deleteRental,
 };
