@@ -72,6 +72,10 @@ const rentalSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    remarks: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

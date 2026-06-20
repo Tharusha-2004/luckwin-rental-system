@@ -445,6 +445,13 @@ const RentalsPage = () => {
                 </div>
               </div>
 
+              {/* Remarks */}
+              {rental.remarks && (
+                <div className="bg-yellow-50 rounded p-3 mb-4 text-sm text-yellow-800 border-l-4 border-yellow-400">
+                  <span className="font-semibold">Note:</span> {rental.remarks}
+                </div>
+              )}
+
               {/* Actions */}
               {rental.status !== 'Returned' && (
                 <div className="flex justify-end">

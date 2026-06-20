@@ -820,6 +820,14 @@ const Returns = () => {
                 </table>
               </div>
 
+              {/* Remarks/Notes */}
+              {viewingReceipt.remarks && (
+                <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Special Notes</p>
+                  <p className="text-sm text-gray-700 italic">"{viewingReceipt.remarks}"</p>
+                </div>
+              )}
+
               {/* Financial Settlement */}
               <div className="space-y-2 mb-6">
                 <div className="flex justify-between text-sm text-gray-600">

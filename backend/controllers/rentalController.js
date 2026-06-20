@@ -68,7 +68,7 @@ const createRental = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { customerId, rentedItems, expectedReturnDate, advancePayment, notes } = req.body;
+    const { customerId, rentedItems, expectedReturnDate, advancePayment, notes, remarks } = req.body;
 
     // Validation
     if (!customerId || !rentedItems || !expectedReturnDate) {
@@ -151,6 +151,7 @@ const createRental = async (req, res) => {
       status: 'Active',
       agreementToken,
       notes,
+      remarks,
     });
 
     await rental.save({ session });

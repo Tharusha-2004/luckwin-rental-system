@@ -28,6 +28,7 @@ const NewRental = () => {
   // Rental Summary State
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [advancePayment, setAdvancePayment] = useState(0);
+  const [remarks, setRemarks] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedItemQty, setSelectedItemQty] = useState(1);
 
@@ -204,6 +205,7 @@ const NewRental = () => {
         rentedItems,
         expectedReturnDate,
         advancePayment: parseFloat(advancePayment),
+        remarks,
       });
 
       if (!rentalResponse.data.success) {
@@ -544,6 +546,18 @@ const NewRental = () => {
                       Rs. {amountDue.toLocaleString()}
                     </span>
                   </div>
+                </div>
+
+                {/* Remarks */}
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">Remarks / Special Notes (Optional)</label>
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Note regarding equipment condition or requests..."
+                    rows="2"
+                    className="w-full px-3 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition resize-none text-sm"
+                  ></textarea>
                 </div>
               </div>
             )}
