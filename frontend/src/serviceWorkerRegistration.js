@@ -43,7 +43,21 @@ function registerValidSW(swUrl, config) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              console.log('New content is available and will be used when all tabs for this page are closed.');
+              console.log('New content is available. Clearing cache and reloading...');
+              
+              // Clear all caches to ensure stale chunks are wiped
+              if (caches) {
+                caches.keys().then((names) => {
+                  Promise.all(names.map(name => caches.delete(name)))
+                    .then(() => {
+                      // Reload the page to fetch the latest index.html and new JS chunks
+                      window.location.reload();
+                    });
+                });
+              } else {
+                window.location.reload();
+              }
+
               if (config && config.onUpdate) {
                 config.onUpdate(registration);
               }
