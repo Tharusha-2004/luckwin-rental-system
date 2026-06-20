@@ -62,6 +62,11 @@ const rentalSchema = new mongoose.Schema(
       enum: ['Active', 'Returned', 'Overdue'],
       default: 'Active',
     },
+
+    remarks: {
+      type: String,
+      default: ''
+    },
     agreementToken: {
       type: String,
       unique: true,
@@ -72,10 +77,7 @@ const rentalSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    remarks: {
-      type: String,
-      default: '',
-    },
+
   },
   {
     timestamps: true,
