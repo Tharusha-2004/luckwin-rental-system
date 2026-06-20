@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Menu, X, Home, ShoppingCart, RotateCcw, Settings, Package, LogOut, Users } from 'lucide-react';
+import InstallPWA from './InstallPWA';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setShowSidebar] = useState(true);
@@ -113,9 +114,12 @@ const Layout = ({ children }) => {
           } flex-1 overflow-auto transition-all duration-300`}
       >
         {/* Top Bar */}
-        <div className="bg-slate-800 border-b border-slate-700 px-8 py-4 shadow-sm sticky top-0 z-10">
-          <h2 className="text-xl font-semibold text-white">Equipment Rental Management System</h2>
-          <p className="text-slate-400 text-sm mt-1">LUCKWIN STORES - Rental & Inventory Management</p>
+        <div className="bg-slate-800 border-b border-slate-700 px-8 py-4 shadow-sm sticky top-0 z-10 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Equipment Rental Management System</h2>
+            <p className="text-slate-400 text-sm mt-1">LUCKWIN STORES - Rental & Inventory Management</p>
+          </div>
+          <InstallPWA />
         </div>
 
         {/* Page Content */}
