@@ -36,6 +36,7 @@ const Dashboard = () => {
   const [editItems, setEditItems] = useState([]);
   const [editReturnDate, setEditReturnDate] = useState('');
   const [editAdvance, setEditAdvance] = useState(0);
+  const [editRemarks, setEditRemarks] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -92,6 +93,7 @@ const Dashboard = () => {
     );
     setEditReturnDate(toDateInput(rental.expectedReturnDate));
     setEditAdvance(rental.advancePayment || 0);
+    setEditRemarks(rental.remarks || '');
     setEditError('');
   };
 
@@ -136,6 +138,7 @@ const Dashboard = () => {
         rentedItems: editItems.map((i) => ({ item: i.itemId, itemId: i.itemId, quantity: Number(i.quantity) })),
         subtotal: editSubtotal,
         advancePaid: parseFloat(editAdvance || 0),
+        remarks: editRemarks,
       };
       const res = await rentalsAPI.update(editingRental._id, payload);
       if (res.data.success) {
@@ -389,8 +392,8 @@ const Dashboard = () => {
                 <div className="text-right">
                   <p className="text-xs text-gray-400 uppercase tracking-wider">Status</p>
                   <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-bold ${viewingRental.status === 'Returned' ? 'bg-green-100 text-green-700'
-                      : viewingRental.status === 'Overdue' ? 'bg-red-100 text-red-700'
-                        : 'bg-blue-100 text-blue-700'
+                    : viewingRental.status === 'Overdue' ? 'bg-red-100 text-red-700'
+                      : 'bg-blue-100 text-blue-700'
                     }`}>
                     {viewingRental.status}
                   </span>
@@ -460,20 +463,32 @@ const Dashboard = () => {
                   <span className="font-semibold text-green-600">− {formatCurrency(bill.advance)}</span>
                 </div>
                 <div className={`flex justify-between items-center p-3 rounded-lg mt-2 ${bill.balance > 0 ? 'bg-red-50 border border-red-200'
-                    : bill.balance < 0 ? 'bg-teal-50 border border-teal-200'
-                      : 'bg-green-50 border border-green-200'
+                  : bill.balance < 0 ? 'bg-teal-50 border border-teal-200'
+                    : 'bg-green-50 border border-green-200'
                   }`}>
                   <span className="font-bold text-gray-800">
                     {bill.balance > 0 ? 'Balance Due' : bill.balance < 0 ? 'Refund' : 'Fully Settled'}
                   </span>
                   <span className={`font-black text-xl ${bill.balance > 0 ? 'text-red-600'
-                      : bill.balance < 0 ? 'text-teal-600'
-                        : 'text-green-600'
+                    : bill.balance < 0 ? 'text-teal-600'
+                      : 'text-green-600'
                     }`}>
                     {bill.balance === 0 ? '✓ Rs. 0.00' : formatCurrency(Math.abs(bill.balance))}
                   </span>
                 </div>
               </div>
+
+              {/* Remarks / Special Notes Section */}
+              {viewingRental.remarks && viewingRental.remarks.trim() !== '' && (
+                <div className="mt-6 p-4 rounded-lg bg-yellow-50 border-l-4 border-yellow-400">
+                  <p className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-1">
+                    Remarks / Special Notes:
+                  </p>
+                  <p className="text-sm text-yellow-700 italic whitespace-pre-wrap">
+                    "{viewingRental.remarks}"
+                  </p>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
@@ -627,6 +642,20 @@ const Dashboard = () => {
                   onChange={(e) => setEditAdvance(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
                 />
+              </div>
+
+              {/* Remarks Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Remarks / Special Notes (Optional)
+                </label>
+                <textarea
+                  value={editRemarks}
+                  onChange={(e) => setEditRemarks(e.target.value)}
+                  placeholder="Note regarding equipment condition or customer requests..."
+                  rows="3"
+                  className="w-full px-4 py-2.5 rounded-xl bg-gray-900 border border-gray-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all resize-none"
+                ></textarea>
               </div>
 
               {/* Cost Summary */}
