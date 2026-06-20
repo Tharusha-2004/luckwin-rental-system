@@ -12,6 +12,7 @@ import {
   Search,
   Loader,
   AlertCircle,
+  User,
   UserCheck,
   Phone,
   CreditCard,
@@ -24,18 +25,18 @@ import {
 } from 'lucide-react';
 
 const Customers = () => {
-  const [customers, setCustomers]         = useState([]);
-  const [filtered, setFiltered]           = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState('');
-  const [search, setSearch]               = useState('');
+  const [customers, setCustomers] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   // ── Edit modal state ──────────────────────────────────────────────────────────
   const [editingCustomer, setEditingCustomer] = useState(null); // null = closed
-  const [editForm, setEditForm]               = useState({ name: '', phone: '', nic: '' });
-  const [editLoading, setEditLoading]         = useState(false);
-  const [editError, setEditError]             = useState('');
-  const [editSuccess, setEditSuccess]         = useState('');
+  const [editForm, setEditForm] = useState({ name: '', phone: '', nic: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
 
   // ── Fetch all customers on mount ─────────────────────────────────────────────
   useEffect(() => {
@@ -103,10 +104,11 @@ const Customers = () => {
   // ── Open edit modal ───────────────────────────────────────────────────────────
   const openEditModal = (customer) => {
     setEditingCustomer(customer);
-    setEditForm({
-      name:  customer.name  || '',
+    setEditForm({                   // <--- setEditForm kiyala wenas kala!
+      name: customer.name || '',
       phone: customer.phone || '',
-      nic:   customer.nic   || '',
+      nic: customer.nic || '',
+      photo: customer.photo || null,
     });
     setEditError('');
     setEditSuccess('');
@@ -129,9 +131,10 @@ const Customers = () => {
       setEditLoading(true);
       setEditError('');
       const response = await apiClient.put(`/customers/${editingCustomer._id}`, {
-        name:  editForm.name.trim(),
+        name: editForm.name.trim(),
         phone: editForm.phone.trim(),
-        nic:   editForm.nic.trim(),
+        nic: editForm.nic.trim(),
+        photo: editForm.photo,
       });
       if (response.data.success) {
         setEditSuccess('Customer updated successfully!');
@@ -258,7 +261,7 @@ const Customers = () => {
             <p className="text-slate-400 text-sm">Loading customers…</p>
           </div>
 
-        /* ── Empty State ────────────────────────────────────────────────────── */
+          /* ── Empty State ────────────────────────────────────────────────────── */
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Users className="text-slate-600" size={48} />
@@ -275,7 +278,7 @@ const Customers = () => {
             )}
           </div>
 
-        /* ── Data Table ─────────────────────────────────────────────────────── */
+          /* ── Data Table ─────────────────────────────────────────────────────── */
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -302,16 +305,19 @@ const Customers = () => {
                 {filtered.map((customer, index) => (
                   <tr
                     key={customer._id}
-                    className={`group transition-colors duration-150 hover:bg-slate-700/40 ${
-                      index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-800/50'
-                    }`}
+                    className={`group transition-colors duration-150 hover:bg-slate-700/40 ${index % 2 === 0 ? 'bg-slate-800' : 'bg-slate-800/50'
+                      }`}
                   >
                     {/* Name + avatar */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md">
-                          {getInitials(customer.name)}
-                        </div>
+                        {customer.photo ? (
+                          <img src={customer.photo} alt={customer.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 shadow-md" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md">
+                            {getInitials(customer.name)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-semibold text-white group-hover:text-indigo-300 transition-colors">
                             {customer.name || '—'}
@@ -417,9 +423,13 @@ const Customers = () => {
 
               {/* Avatar preview */}
               <div className="flex items-center gap-3 pb-1">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-lg">
-                  {getInitials(editForm.name || editingCustomer.name)}
-                </div>
+                {editForm.photo || editingCustomer.photo ? (
+                  <img src={editForm.photo || editingCustomer.photo} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-slate-600 shadow-lg" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                    {getInitials(editForm.name || editingCustomer.name)}
+                  </div>
+                )}
                 <div>
                   <p className="text-white font-semibold">{editForm.name || editingCustomer.name}</p>
                   <p className="text-slate-500 text-xs">Customer ID: {editingCustomer._id?.slice(-8)}</p>
@@ -469,6 +479,49 @@ const Customers = () => {
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono"
                   required
                 />
+              </div>
+
+              {/* Photo */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Customer Photo (Optional)
+                </label>
+                <div className="flex items-center gap-4">
+                  {editForm.photo ? (
+                    <div className="relative">
+                      <img src={editForm.photo} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-slate-600" />
+                      <button
+                        type="button"
+                        onClick={() => setEditForm({ ...editForm, photo: null })}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-md"
+                        title="Remove photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-dashed border-slate-600 flex items-center justify-center">
+                      <User size={24} className="text-slate-500" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setEditForm({ ...editForm, photo: reader.result });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600/20 file:text-indigo-400 hover:file:bg-indigo-600/30 transition-all cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Inline feedback */}

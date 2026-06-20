@@ -19,6 +19,7 @@ const NewRental = () => {
     name: '',
     phone: '',
     nic: '',
+    photo: null,
   });
 
   // Selected Items Cart
@@ -178,6 +179,7 @@ const NewRental = () => {
         name: customer.name.trim(),
         phone: customer.phone.trim(),
         nic: customer.nic.trim(),
+        photo: customer.photo,
       });
 
       if (!customerResponse.data.success) {
@@ -307,6 +309,47 @@ const NewRental = () => {
                   placeholder="e.g., 123456789V"
                   className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white placeholder-slate-400 border border-slate-500 focus:border-blue-400 focus:outline-none transition"
                 />
+              </div>
+              
+              {/* Photo Input */}
+              <div>
+                <label className="block text-slate-300 font-medium mb-2">Customer Photo (Optional)</label>
+                <div className="flex items-center gap-4">
+                  {customer.photo ? (
+                    <div className="relative">
+                      <img src={customer.photo} alt="Preview" className="w-16 h-16 rounded-full object-cover border-2 border-slate-600" />
+                      <button
+                        type="button"
+                        onClick={() => setCustomer({ ...customer, photo: null })}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-md"
+                        title="Remove photo"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-dashed border-slate-600 flex items-center justify-center">
+                      <span className="text-slate-500 text-xs text-center">No<br/>Photo</span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setCustomer({ ...customer, photo: reader.result });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600/30 transition-all cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

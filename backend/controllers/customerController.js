@@ -81,7 +81,7 @@ const getCustomerHistory = async (req, res) => {
 // consistently read `response.data.customer._id`.
 const createCustomer = async (req, res) => {
   try {
-    const { name, phone, nic, nicImageUrl, email, address, city, companyName, notes } = req.body;
+    const { name, phone, nic, nicImageUrl, photo, email, address, city, companyName, notes } = req.body;
 
     // ── Validation ────────────────────────────────────────────────────────────
     if (!name || !phone || !nic) {
@@ -106,6 +106,7 @@ const createCustomer = async (req, res) => {
       if (city         !== undefined) existing.city         = city;
       if (companyName  !== undefined) existing.companyName  = companyName;
       if (notes        !== undefined) existing.notes        = notes;
+      if (photo        !== undefined) existing.photo        = photo;
 
       await existing.save();
 
@@ -124,6 +125,7 @@ const createCustomer = async (req, res) => {
       phone: phone.trim(),
       nic: nic.trim(),
       nicImageUrl,
+      photo,
       email,
       address,
       city,
@@ -177,7 +179,7 @@ const createCustomer = async (req, res) => {
 // Update customer
 const updateCustomer = async (req, res) => {
   try {
-    const { name, phone, nic, nicImageUrl, email, address, city, companyName, notes } = req.body;
+    const { name, phone, nic, nicImageUrl, photo, email, address, city, companyName, notes } = req.body;
 
     const customer = await Customer.findById(req.params.id);
     if (!customer) {
@@ -197,6 +199,7 @@ const updateCustomer = async (req, res) => {
     if (city !== undefined) customer.city = city;
     if (companyName !== undefined) customer.companyName = companyName;
     if (notes !== undefined) customer.notes = notes;
+    if (photo !== undefined) customer.photo = photo;
 
     await customer.save();
 
