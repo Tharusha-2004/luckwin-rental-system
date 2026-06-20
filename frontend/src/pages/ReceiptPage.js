@@ -16,9 +16,9 @@ import html2canvas from 'html2canvas';
 
 const ReceiptPage = () => {
   const { token } = useParams();
-  const [receipt, setReceipt]     = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [receipt, setReceipt] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
 
   // Ref attached to the white receipt card — only this section is captured
@@ -27,6 +27,8 @@ const ReceiptPage = () => {
   useEffect(() => {
     fetchReceipt();
   }, [token]);
+
+
 
   const fetchReceipt = async () => {
     try {
@@ -62,15 +64,15 @@ const ReceiptPage = () => {
         backgroundColor: '#ffffff',
       });
 
-      const imgData   = canvas.toDataURL('image/png');
-      const pdf       = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
       // A4 dimensions in mm
-      const pageWidth  = pdf.internal.pageSize.getWidth();   // 210
+      const pageWidth = pdf.internal.pageSize.getWidth();   // 210
       const pageHeight = pdf.internal.pageSize.getHeight();  // 297
 
       // Scale the captured image to fit A4 width, keep aspect ratio
-      const imgWidthMM  = pageWidth;
+      const imgWidthMM = pageWidth;
       const imgHeightMM = (canvas.height / canvas.width) * imgWidthMM;
 
       // If content is taller than one page, jsPDF will clip — split into pages
@@ -160,13 +162,12 @@ const ReceiptPage = () => {
             <div className="text-right">
               <p className="text-xs text-gray-500 uppercase tracking-wider">Status</p>
               <p
-                className={`text-lg font-semibold ${
-                  receipt.status === 'Returned'
-                    ? 'text-green-600'
-                    : receipt.status === 'Overdue'
+                className={`text-lg font-semibold ${receipt.status === 'Returned'
+                  ? 'text-green-600'
+                  : receipt.status === 'Overdue'
                     ? 'text-red-600'
                     : 'text-blue-600'
-                }`}
+                  }`}
               >
                 {receipt.status}
               </p>
@@ -271,14 +272,16 @@ const ReceiptPage = () => {
             </div>
           </div>
 
-          {/* Remarks / Special Notes Section */}
-          {receipt?.remarks && receipt.remarks.trim() !== '' && (
-            <div className="mb-8 p-6 rounded border border-gray-200 bg-gray-50">
-              <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          {/* ─────────────────────────────────────────────────────────
+    Remarks / Special Notes Section
+───────────────────────────────────────────────────────── */}
+          {receipt?.remarks && (
+            <div className="mt-6 mb-4 p-4 rounded-lg bg-yellow-50 border-l-4 border-yellow-400">
+              <p className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
                 Remarks / Special Notes:
               </p>
-              <p className="text-sm text-gray-600 italic whitespace-pre-wrap">
-                "{receipt.remarks}"
+              <p className="text-sm text-gray-700 italic whitespace-pre-wrap">
+                {receipt.remarks}
               </p>
             </div>
           )}

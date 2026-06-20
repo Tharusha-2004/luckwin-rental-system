@@ -25,6 +25,7 @@ const RentalsPage = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [advancePayment, setAdvancePayment] = useState(0);
+  const [remarks, setRemarks] = useState('');
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   useEffect(() => {
@@ -132,6 +133,7 @@ const RentalsPage = () => {
         rentedItems: selectedItems,
         expectedReturnDate,
         advancePayment: parseFloat(advancePayment),
+        remarks: remarks, // <--- Menna me line eka aluthin danna!
       };
 
       const response = await rentalsAPI.create(rentalData);
@@ -142,6 +144,7 @@ const RentalsPage = () => {
         setSelectedItems([]);
         setExpectedReturnDate('');
         setAdvancePayment(0);
+        setRemarks('');
         fetchRentals();
       }
     } catch (err) {
@@ -317,6 +320,18 @@ const RentalsPage = () => {
               </div>
             </div>
 
+            {/* Remarks Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold mb-2">Remarks / Special Notes (Optional)</label>
+              <textarea
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                rows="2"
+                placeholder="E.g., Item has minor scratches..."
+              ></textarea>
+            </div>
+
             {/* Cost Summary */}
             {selectedItems.length > 0 && expectedReturnDate && (
               <div className="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
@@ -358,6 +373,7 @@ const RentalsPage = () => {
                   setSelectedItems([]);
                   setExpectedReturnDate('');
                   setAdvancePayment(0);
+                  setRemarks('');
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
               >
@@ -404,10 +420,10 @@ const RentalsPage = () => {
                   <p className="text-xs text-gray-600 uppercase">Status</p>
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${rental.status === 'Returned'
-                        ? 'bg-green-100 text-green-800'
-                        : rental.status === 'Overdue'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-blue-100 text-blue-800'
+                      ? 'bg-green-100 text-green-800'
+                      : rental.status === 'Overdue'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
                       }`}
                   >
                     {rental.status}
