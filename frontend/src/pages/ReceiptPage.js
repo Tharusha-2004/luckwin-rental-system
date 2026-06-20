@@ -271,6 +271,18 @@ const ReceiptPage = () => {
             </div>
           </div>
 
+          {/* Remarks / Special Notes Section */}
+          {receipt?.remarks && receipt.remarks.trim() !== '' && (
+            <div className="mb-8 p-6 rounded border border-gray-200 bg-gray-50">
+              <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                Remarks / Special Notes:
+              </p>
+              <p className="text-sm text-gray-600 italic whitespace-pre-wrap">
+                "{receipt.remarks}"
+              </p>
+            </div>
+          )}
+
           {/* Terms & Conditions */}
           <div className="bg-gray-50 p-6 rounded border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-700 uppercase mb-3">Terms & Conditions</h3>
