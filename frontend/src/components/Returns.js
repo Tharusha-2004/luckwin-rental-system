@@ -274,8 +274,8 @@ const Returns = () => {
           <button
             onClick={() => setActiveTab('process')}
             className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all ${activeTab === 'process'
-                ? 'bg-slate-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-600 text-white shadow'
+              : 'text-slate-400 hover:text-slate-200'
               }`}
           >
             Process Returns
@@ -283,8 +283,8 @@ const Returns = () => {
           <button
             onClick={() => setActiveTab('history')}
             className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all ${activeTab === 'history'
-                ? 'bg-slate-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
+              ? 'bg-slate-600 text-white shadow'
+              : 'text-slate-400 hover:text-slate-200'
               }`}
           >
             Return History
@@ -739,246 +739,246 @@ const Returns = () => {
       {/* ══════════════════════════════════════════════════════════════════════
           RETURN RECEIPT MODAL
       ══════════════════════════════════════════════════════════════════════ */}
-          {viewingReceipt && (
-            <div
-              className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
-              style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
-              onClick={(e) => { if (e.target === e.currentTarget) closeReceiptModal(); }}
-            >
-              <div className="w-full max-w-lg my-8 rounded-2xl shadow-2xl overflow-hidden">
-                {/* ── Receipt Content (Captured by html2canvas) ── */}
-                <div ref={receiptRef} className="bg-white text-gray-800 p-8 font-sans">
+      {viewingReceipt && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto"
+          style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeReceiptModal(); }}
+        >
+          <div className="w-full max-w-lg my-8 rounded-2xl shadow-2xl overflow-hidden">
+            {/* ── Receipt Content (Captured by html2canvas) ── */}
+            <div ref={receiptRef} className="bg-white text-gray-800 p-8 font-sans">
 
-                  {/* Header */}
-                  <div className="text-center border-b-2 border-gray-300 pb-5 mb-5">
-                    <p className="text-3xl font-black tracking-widest text-gray-900">🏗️ LUCKWIN STORES</p>
-                    <p className="text-sm text-gray-500 mt-1 font-medium tracking-wide uppercase">
-                      Return & Settlement Receipt
+              {/* Header */}
+              <div className="text-center border-b-2 border-gray-300 pb-5 mb-5">
+                <p className="text-3xl font-black tracking-widest text-gray-900">🏗️ LUCKWIN STORES</p>
+                <p className="text-sm text-gray-500 mt-1 font-medium tracking-wide uppercase">
+                  Return & Settlement Receipt
+                </p>
+              </div>
+
+              {/* Agreement Token & Info */}
+              <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Agreement Token</p>
+                    <p className="font-mono font-bold text-gray-900 text-sm mt-0.5 break-all">
+                      {viewingReceipt.agreementToken}
                     </p>
                   </div>
-
-                  {/* Agreement Token & Info */}
-                  <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider">Agreement Token</p>
-                        <p className="font-mono font-bold text-gray-900 text-sm mt-0.5 break-all">
-                          {viewingReceipt.agreementToken}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                          Returned
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Customer</p>
-                        <p className="font-bold text-gray-900">{viewingReceipt.customerId?.name || 'N/A'}</p>
-                        <p className="text-sm text-gray-600">{viewingReceipt.customerId?.phone || '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Dates</p>
-                        <p className="text-sm text-gray-700">
-                          <span className="font-medium">Rented:</span> {formatDate(viewingReceipt.rentDate)}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-0.5">
-                          <span className="font-medium">Returned:</span> {formatDate(viewingReceipt.actualReturnDate || new Date())}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Items Table */}
-                  <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Returned Items</p>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left pb-2 text-gray-600 font-semibold">Item</th>
-                          <th className="text-center pb-2 text-gray-600 font-semibold">Qty</th>
-                          <th className="text-right pb-2 text-gray-600 font-semibold">Rate</th>
-                          <th className="text-right pb-2 text-gray-600 font-semibold">Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {viewingReceipt.rentedItems?.map((item, idx) => {
-                          const days = calculateDaysRented(viewingReceipt);
-                          const cost = item.quantity * item.dailyRate * days;
-                          return (
-                            <tr key={idx} className="border-b border-gray-100">
-                              <td className="py-2 text-gray-800 font-medium">{item.itemId?.name || 'Item'}</td>
-                              <td className="py-2 text-center text-gray-600">{item.quantity}</td>
-                              <td className="py-2 text-right text-gray-600">{formatCurrency(item.dailyRate)}</td>
-                              <td className="py-2 text-right font-semibold text-gray-800">{formatCurrency(cost)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Financial Settlement */}
-                  <div className="space-y-2 mb-6">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Subtotal ({calculateDaysRented(viewingReceipt)} days)</span>
-                      <span className="font-semibold">{formatCurrency(calculateTotalCost(viewingReceipt))}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Advance Paid</span>
-                      <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
-                    </div>
-
-                    {((viewingReceipt.manualDiscount || viewingReceipt.discountAmount) > 0) && (
-                      <div className="flex justify-between text-sm mt-1">
-                        <span className="text-gray-600">Discount</span>
-                        <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.manualDiscount || viewingReceipt.discountAmount)}</span>
-                      </div>
-                    )}
-
-                    {(() => {
-                      const receiptSubtotal = calculateTotalCost(viewingReceipt);
-                      const receiptAdvance = viewingReceipt.advancePayment || 0;
-                      const receiptDiscount = viewingReceipt.manualDiscount || viewingReceipt.discountAmount || 0;
-                      const receiptBalance = viewingReceipt.finalSettledAmount !== undefined
-                        ? viewingReceipt.finalSettledAmount
-                        : (receiptSubtotal - receiptAdvance - receiptDiscount);
-
-                      return (
-                        <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${receiptBalance > 0 ? 'bg-gray-100 border border-gray-300'
-                          : receiptBalance < 0 ? 'bg-teal-50 border border-teal-200'
-                            : 'bg-green-50 border border-green-200'
-                          }`}>
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800">
-                              {receiptBalance > 0 ? 'Balance Paid by Customer' : receiptBalance < 0 ? 'Refund Given to Customer' : 'Fully Settled'}
-                            </span>
-                            <span className="text-xs text-gray-500 mt-0.5">Final Settled Amount</span>
-                          </div>
-                          <span className={`font-black text-xl ${receiptBalance > 0 ? 'text-gray-800'
-                            : receiptBalance < 0 ? 'text-teal-600'
-                              : 'text-green-600'
-                            }`}>
-                            {receiptBalance === 0 ? '✓ Rs. 0.00' : formatCurrency(Math.abs(receiptBalance))}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
-                    <p className="font-semibold text-gray-600 mb-0.5">Thank you for choosing Luckwin Stores!</p>
-                    <p>Returns & Settlement Processed Successfully</p>
-                    <p className="mt-1">Generated: {new Date().toLocaleString('en-GB')}</p>
+                  <div className="text-right">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                      Returned
+                    </span>
                   </div>
                 </div>
 
-                {/* Modal Actions */}
-                <div className="bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3">
-                  <button
-                    onClick={closeReceiptModal}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all font-medium text-sm"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={handleDownloadPDF}
-                    disabled={pdfLoading}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:bg-teal-600/50 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-teal-500/20"
-                  >
-                    {pdfLoading
-                      ? <><Loader size={15} className="animate-spin" /> Generating…</>
-                      : <><Download size={15} /> Download as PDF</>
-                    }
-                  </button>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Customer</p>
+                    <p className="font-bold text-gray-900">{viewingReceipt.customerId?.name || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">{viewingReceipt.customerId?.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Dates</p>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Rented:</span> {formatDate(viewingReceipt.rentDate)}
+                    </p>
+                    <p className="text-sm text-gray-700 mt-0.5">
+                      <span className="font-medium">Returned:</span> {formatDate(viewingReceipt.actualReturnDate || new Date())}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* ══════════════════════════════════════════════════════════════════════
+              {/* Items Table */}
+              <div className="mb-5 pb-4 border-b border-dashed border-gray-300">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Returned Items</p>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left pb-2 text-gray-600 font-semibold">Item</th>
+                      <th className="text-center pb-2 text-gray-600 font-semibold">Qty</th>
+                      <th className="text-right pb-2 text-gray-600 font-semibold">Rate</th>
+                      <th className="text-right pb-2 text-gray-600 font-semibold">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingReceipt.rentedItems?.map((item, idx) => {
+                      const days = calculateDaysRented(viewingReceipt);
+                      const cost = item.quantity * item.dailyRate * days;
+                      return (
+                        <tr key={idx} className="border-b border-gray-100">
+                          <td className="py-2 text-gray-800 font-medium">{item.itemId?.name || 'Item'}</td>
+                          <td className="py-2 text-center text-gray-600">{item.quantity}</td>
+                          <td className="py-2 text-right text-gray-600">{formatCurrency(item.dailyRate)}</td>
+                          <td className="py-2 text-right font-semibold text-gray-800">{formatCurrency(cost)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Financial Settlement */}
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Subtotal ({calculateDaysRented(viewingReceipt)} days)</span>
+                  <span className="font-semibold">{formatCurrency(calculateTotalCost(viewingReceipt))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Advance Paid</span>
+                  <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.advancePayment || 0)}</span>
+                </div>
+
+                {((viewingReceipt.manualDiscount || viewingReceipt.discountAmount) > 0) && (
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-600">Discount</span>
+                    <span className="font-semibold text-green-600">− {formatCurrency(viewingReceipt.manualDiscount || viewingReceipt.discountAmount)}</span>
+                  </div>
+                )}
+
+                {(() => {
+                  const receiptSubtotal = calculateTotalCost(viewingReceipt);
+                  const receiptAdvance = viewingReceipt.advancePayment || 0;
+                  const receiptDiscount = viewingReceipt.manualDiscount || viewingReceipt.discountAmount || 0;
+                  const receiptBalance = viewingReceipt.finalSettledAmount !== undefined
+                    ? viewingReceipt.finalSettledAmount
+                    : (receiptSubtotal - receiptAdvance - receiptDiscount);
+
+                  return (
+                    <div className={`flex justify-between items-center p-3 rounded-lg mt-3 ${receiptBalance > 0 ? 'bg-gray-100 border border-gray-300'
+                      : receiptBalance < 0 ? 'bg-teal-50 border border-teal-200'
+                        : 'bg-green-50 border border-green-200'
+                      }`}>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-800">
+                          {receiptBalance > 0 ? 'Balance Paid by Customer' : receiptBalance < 0 ? 'Refund Given to Customer' : 'Fully Settled'}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-0.5">Final Settled Amount</span>
+                      </div>
+                      <span className={`font-black text-xl ${receiptBalance > 0 ? 'text-gray-800'
+                        : receiptBalance < 0 ? 'text-teal-600'
+                          : 'text-green-600'
+                        }`}>
+                        {receiptBalance === 0 ? '✓ Rs. 0.00' : formatCurrency(Math.abs(receiptBalance))}
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="text-center text-xs text-gray-400 border-t border-gray-200 pt-4">
+                <p className="font-semibold text-gray-600 mb-0.5">Thank you for choosing Luckwin Stores!</p>
+                <p>Returns & Settlement Processed Successfully</p>
+                <p className="mt-1">Generated: {new Date().toLocaleString('en-GB')}</p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="bg-gray-900 border-t border-gray-700 px-6 py-4 flex gap-3">
+              <button
+                onClick={closeReceiptModal}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all font-medium text-sm"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfLoading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:bg-teal-600/50 disabled:cursor-not-allowed text-white font-bold text-sm transition-all shadow-lg shadow-teal-500/20"
+              >
+                {pdfLoading
+                  ? <><Loader size={15} className="animate-spin" /> Generating…</>
+                  : <><Download size={15} /> Download as PDF</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
           SETTLE & RETURN MODAL
       ══════════════════════════════════════════════════════════════════════ */}
-          {showSettleModal && rentalData && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-              style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
-              onClick={(e) => { if (e.target === e.currentTarget) setShowSettleModal(false); }}
-            >
-              <div className="bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-700">
-                <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <CheckCircle className="text-green-400" size={24} /> Settle & Return
-                  </h2>
-                  <button onClick={() => setShowSettleModal(false)} className="text-slate-400 hover:text-white transition">
-                    <X size={24} />
-                  </button>
+      {showSettleModal && rentalData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          style={{ backgroundColor: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(5px)' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowSettleModal(false); }}
+        >
+          <div className="bg-slate-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-700">
+            <div className="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <CheckCircle className="text-green-400" size={24} /> Settle & Return
+              </h2>
+              <button onClick={() => setShowSettleModal(false)} className="text-slate-400 hover:text-white transition">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                <div className="flex justify-between text-slate-300 mb-2">
+                  <span>Subtotal:</span>
+                  <span className="text-white font-semibold">{formatCurrency(totalCost)}</span>
+                </div>
+                <div className="flex justify-between text-slate-300 mb-4">
+                  <span>Advance Paid:</span>
+                  <span className="text-green-400">-{formatCurrency(advancePaid)}</span>
                 </div>
 
-                <div className="p-6 space-y-4">
-                  <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                    <div className="flex justify-between text-slate-300 mb-2">
-                      <span>Subtotal:</span>
-                      <span className="text-white font-semibold">{formatCurrency(totalCost)}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-300 mb-4">
-                      <span>Advance Paid:</span>
-                      <span className="text-green-400">-{formatCurrency(advancePaid)}</span>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-600">
-                      <label className="block text-slate-300 font-medium mb-2 text-sm">Manual Discount (Rs.)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={totalCost}
-                        value={discountAmount}
-                        onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition"
-                      />
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const settleBalance = totalCost - discountAmount - advancePaid;
-                    return (
-                      <div className={`rounded-lg p-4 border-2 ${settleBalance > 0 ? 'bg-orange-600/20 border-orange-500/50'
-                        : settleBalance < 0 ? 'bg-teal-500/20 border-teal-500/50'
-                          : 'bg-green-500/20 border-green-500/50'
-                        }`}>
-                        <p className={`text-sm mb-1 ${settleBalance > 0 ? 'text-orange-300'
-                          : settleBalance < 0 ? 'text-teal-300'
-                            : 'text-green-300'
-                          }`}>
-                          {settleBalance > 0 ? 'Amount Due from Customer' : settleBalance < 0 ? 'Refund to Customer' : 'Fully Settled'}
-                        </p>
-                        <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(settleBalance))}</p>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="bg-slate-900 px-6 py-4 flex gap-3">
-                  <button
-                    onClick={() => setShowSettleModal(false)}
-                    className="flex-1 px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmReturn}
-                    disabled={isProcessing}
-                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-bold transition disabled:opacity-50"
-                  >
-                    {isProcessing ? <><Loader className="animate-spin" size={18} /> Processing…</> : 'Confirm Return'}
-                  </button>
+                <div className="pt-4 border-t border-slate-600">
+                  <label className="block text-slate-300 font-medium mb-2 text-sm">Manual Discount (Rs.)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalCost}
+                    value={discountAmount}
+                    onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-4 py-2 rounded-lg bg-slate-600 text-white border border-slate-500 focus:border-blue-400 focus:outline-none transition"
+                  />
                 </div>
               </div>
+
+              {(() => {
+                const settleBalance = totalCost - discountAmount - advancePaid;
+                return (
+                  <div className={`rounded-lg p-4 border-2 ${settleBalance > 0 ? 'bg-orange-600/20 border-orange-500/50'
+                    : settleBalance < 0 ? 'bg-teal-500/20 border-teal-500/50'
+                      : 'bg-green-500/20 border-green-500/50'
+                    }`}>
+                    <p className={`text-sm mb-1 ${settleBalance > 0 ? 'text-orange-300'
+                      : settleBalance < 0 ? 'text-teal-300'
+                        : 'text-green-300'
+                      }`}>
+                      {settleBalance > 0 ? 'Amount Due from Customer' : settleBalance < 0 ? 'Refund to Customer' : 'Fully Settled'}
+                    </p>
+                    <p className="text-white text-3xl font-bold">{formatCurrency(Math.abs(settleBalance))}</p>
+                  </div>
+                );
+              })()}
             </div>
-          )}
+
+            <div className="bg-slate-900 px-6 py-4 flex gap-3">
+              <button
+                onClick={() => setShowSettleModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReturn}
+                disabled={isProcessing}
+                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-bold transition disabled:opacity-50"
+              >
+                {isProcessing ? <><Loader className="animate-spin" size={18} /> Processing…</> : 'Confirm Return'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
