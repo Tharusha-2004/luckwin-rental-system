@@ -60,7 +60,7 @@ router.get('/:token', async (req, res) => {
         advancePayment: rental.advancePayment,
         totalCost: rental.totalCost,
         finalAmount: rental.finalAmount,
-        remarks: rental.remarks, // <--- Menna api aluthin ekathu karapu kaalla!
+        remarks: rental.remarks,
       },
     };
 

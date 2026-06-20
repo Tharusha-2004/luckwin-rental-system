@@ -273,11 +273,11 @@ const ReceiptPage = () => {
           </div>
 
           {/* ─────────────────────────────────────────────────────────
-    Remarks / Special Notes Section
-───────────────────────────────────────────────────────── */}
-          {receipt?.remarks && (
+              Remarks / Special Notes Section
+          ───────────────────────────────────────────────────────── */}
+          {receipt?.remarks && receipt.remarks.trim() !== '' && (
             <div className="mt-6 mb-4 p-4 rounded-lg bg-yellow-50 border-l-4 border-yellow-400">
-              <p className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">
+              <p className="text-xs font-bold text-yellow-800 uppercase tracking-wider mb-1">
                 Remarks / Special Notes:
               </p>
               <p className="text-sm text-gray-700 italic whitespace-pre-wrap">

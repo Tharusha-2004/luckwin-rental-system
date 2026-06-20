@@ -404,13 +404,16 @@ const searchRentals = async (req, res) => {
 const updateRental = async (req, res) => {
   try {
     const rentalId = req.params.id;
-    const { rentedItems, subtotal, advancePaid, remarks } = req.body; // <--- remarks eka add kala
+    const { rentedItems, subtotal, advancePaid, remarks } = req.body;
+
     const existingRental = await Rental.findById(rentalId);
     if (!existingRental) {
       return res.status(404).json({ success: false, error: 'Rental record not found' });
     }
 
-    existingRental.remarks = remarks !== undefined ? remarks : existingRental.remarks; // <--- aluth line eka
+    if (remarks !== undefined) {
+      existingRental.remarks = remarks;
+    }
 
     // Restore old item stock
     for (const oldItem of existingRental.rentedItems) {

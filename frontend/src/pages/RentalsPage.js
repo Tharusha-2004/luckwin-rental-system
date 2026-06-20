@@ -133,7 +133,7 @@ const RentalsPage = () => {
         rentedItems: selectedItems,
         expectedReturnDate,
         advancePayment: parseFloat(advancePayment),
-        remarks: remarks, // <--- Menna me line eka aluthin danna!
+        remarks,
       };
 
       const response = await rentalsAPI.create(rentalData);
