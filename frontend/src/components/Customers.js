@@ -37,6 +37,9 @@ const Customers = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
+  
+  // ── Lightbox state ────────────────────────────────────────────────────────────
+  const [fullImage, setFullImage] = useState(null);
 
   // ── Fetch all customers on mount ─────────────────────────────────────────────
   useEffect(() => {
@@ -312,7 +315,12 @@ const Customers = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {customer.photo ? (
-                          <img src={customer.photo} alt={customer.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0 shadow-md" />
+                          <img 
+                            src={customer.photo} 
+                            alt={customer.name} 
+                            onClick={() => setFullImage(customer.photo)}
+                            className="w-9 h-9 rounded-full object-cover flex-shrink-0 shadow-md cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" 
+                          />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md">
                             {getInitials(customer.name)}
@@ -560,6 +568,30 @@ const Customers = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Lightbox Modal for Full Image View ── */}
+      {fullImage && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setFullImage(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]">
+            <button 
+              onClick={() => setFullImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-red-400 bg-slate-800/50 hover:bg-slate-800 p-2 rounded-full transition-all"
+              title="Close"
+            >
+              <X size={24} />
+            </button>
+            <img 
+              src={fullImage} 
+              alt="Full Size View" 
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+            />
           </div>
         </div>
       )}
